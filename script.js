@@ -1,3 +1,124 @@
+// ========== FUNCIONES AUXILIARES GLOBALES (para que las plantillas las vean) ==========
+window.escapeHtml = function(str) { return !str ? '' : str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); };
+window.formatDate = function(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+window.renderSocialLinks = function(template, personal) {
+    const socials = [];
+    if (personal.facebook) socials.push({ name: "Facebook", value: personal.facebook, emoji: "👍" });
+    if (personal.instagram) socials.push({ name: "Instagram", value: personal.instagram, emoji: "📷" });
+    if (personal.github) socials.push({ name: "GitHub", value: personal.github, emoji: "🐙" });
+    if (socials.length === 0) return "";
+    if (template === 'minimal') {
+        return `<div><strong>Redes sociales:</strong> ${socials.map(s => `${s.name}: ${window.escapeHtml(s.value)}`).join(' | ')}</div>`;
+    } else {
+        return `<div>${socials.map(s => `<strong>${s.emoji} ${s.name}:</strong> ${window.escapeHtml(s.value)}`).join(' | ')}</div>`;
+    }
+};
+window.renderWorkExperiences = function(workExperiences) {
+    const items = workExperiences.filter(w => w.jobTitle || w.company);
+    if (!items.length) return '<p>Sin experiencia registrada</p>';
+    return items.map(w => `<div><strong>${window.escapeHtml(w.jobTitle)}</strong> en ${window.escapeHtml(w.company)} (${window.escapeHtml(w.startDate)} - ${window.escapeHtml(w.endDate)})<br><span>${window.escapeHtml(w.description)}</span></div><br>`).join('');
+};
+window.renderEducation = function(educationList) {
+    const items = educationList.filter(e => e.study);
+    if (!items.length) return '<p>Sin estudios registrados</p>';
+    return items.map(e => `<div><strong>${window.escapeHtml(e.study)}</strong> - ${window.escapeHtml(e.institution)} (${window.escapeHtml(e.periodStart)}/${window.escapeHtml(e.periodEnd)}) - ${window.escapeHtml(e.status)} | Duración: ${window.escapeHtml(e.duration)}<br><span>${window.escapeHtml(e.description)}</span></div><br>`).join('');
+};
+window.renderReferences = function(template, references) {
+    const items = references.filter(r => r.name);
+    if (!items.length) return '<p>No hay referencias</p>';
+    if (template === 'minimal') {
+        return items.map(r => `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | Teléfono: ${window.escapeHtml(r.phone)}</div>`).join('');
+    } else {
+        return items.map(r => `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | 📞 ${window.escapeHtml(r.phone)}</div>`).join('');
+    }
+};
+
+// ========== VALIDADORES CONDICIONALES ==========
+function isValidPhone(phone) {
+    if (!phone) return true; // vacío es válido para opcionales
+    const cleaned = phone.replace(/[\s\-]/g, '');
+    const phoneRegex = /^\+?[0-9]{6,15}$/;
+    return phoneRegex.test(cleaned);
+}
+function isValidYearPeriod(value) {
+    if (!value.trim()) return true; // vacío válido
+    return /^[a-zA-Z0-9\-\sáéíóúüñÑ]+$/.test(value.trim());
+}
+function isEndDateAfterStart(startVal, endVal) {
+    if (!startVal || !endVal) return true;
+    if (endVal.toLowerCase() === 'actualidad') return true;
+    const startYearMatch = startVal.match(/\b(19|20)\d{2}\b/);
+    const endYearMatch = endVal.match(/\b(19|20)\d{2}\b/);
+    if (!startYearMatch || !endYearMatch) return true;
+    return parseInt(endYearMatch[0]) >= parseInt(startYearMatch[0]);
+}
+function validateDynamicItem(item, fields, requireNonEmpty = false) {
+    for (let f of fields) {
+        const value = item[f.name] || '';
+        if (!requireNonEmpty && !value) continue;
+        if (f.name === 'startDate' || f.name === 'endDate' || f.name === 'periodStart' || f.name === 'periodEnd') {
+            if (!isValidYearPeriod(value)) {
+                alert(`El campo "${f.label}" contiene caracteres no permitidos.`);
+                return false;
+            }
+        }
+        if (f.name === 'endDate' && item.startDate && !isEndDateAfterStart(item.startDate, value)) {
+            alert(`La fecha de fin (${value}) no puede ser anterior a la de inicio (${item.startDate}).`);
+            return false;
+        }
+        if (f.name === 'periodEnd' && item.periodStart && !isEndDateAfterStart(item.periodStart, value)) {
+            alert(`La fecha de fin (${value}) no puede ser anterior a la de inicio (${item.periodStart}).`);
+            return false;
+        }
+        if (f.type === 'textarea' && value.length > (f.maxLength || 500)) {
+            alert(`El campo "${f.label}" excede el máximo de ${f.maxLength || 500} caracteres.`);
+            return false;
+        }
+        if (f.type === 'text' && f.maxLength && value.length > f.maxLength) {
+            alert(`El campo "${f.label}" excede el máximo de ${f.maxLength} caracteres.`);
+            return false;
+        }
+        if (f.name === 'phone' && value && !isValidPhone(value)) {
+            alert(`Teléfono "${value}" no válido.`);
+            return false;
+        }
+    }
+    return true;
+}
+function validateCurrentStepData() {
+    if (currentStep === 1) { // Experiencia laboral
+        for (let exp of cvData.workExperiences) {
+            const hasContent = exp.jobTitle || exp.company || exp.startDate || exp.endDate || exp.description;
+            if (hasContent && !validateDynamicItem(exp, listConfigs.work.fields, true)) return false;
+        }
+    } else if (currentStep === 2) { // Educación
+        for (let edu of cvData.educationList) {
+            const hasContent = edu.study || edu.institution || edu.periodStart || edu.periodEnd || edu.duration || edu.description;
+            if (hasContent && !validateDynamicItem(edu, listConfigs.edu.fields, true)) return false;
+        }
+    } else if (currentStep === 3) { // Referencias
+        for (let ref of cvData.references) {
+            const hasContent = ref.name || ref.phone || ref.relation;
+            if (hasContent && !validateDynamicItem(ref, listConfigs.ref.fields, true)) return false;
+        }
+    }
+    return true;
+}
+function validatePersonalStep() {
+    const p = cvData.personal;
+    if (!p.fullName.trim()) { alert("❌ Nombre completo obligatorio."); return false; }
+    if (!p.email.trim() || !p.email.includes("@")) { alert("❌ Correo válido requerido."); return false; }
+    if (!p.mobilePhone.trim()) { alert("❌ Teléfono celular obligatorio."); return false; }
+    if (!isValidPhone(p.mobilePhone)) { alert("❌ Teléfono celular no válido (solo números, espacios, guiones, +)."); return false; }
+    if (p.homePhone && !isValidPhone(p.homePhone)) { alert("❌ Teléfono casa no válido."); return false; }
+    return true;
+}
+
 // ========== ESTADO GLOBAL ==========
 let cvData = {
     personal: {
@@ -9,7 +130,7 @@ let cvData = {
     references: []
 };
 
-// Configuración de listas dinámicas (DRY)
+// Configuración de listas dinámicas
 const listConfigs = {
     work: {
         array: () => cvData.workExperiences,
@@ -66,102 +187,6 @@ let loadedTemplates = {};
 
 const stepIndicatorDiv = document.getElementById("stepIndicator");
 const stepContentDiv = document.getElementById("stepContent");
-
-// ========== FUNCIONES AUXILIARES ==========
-function escapeHtml(str) { return !str ? '' : str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
-
-function formatDate(dateStr) {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
-
-// ========== VALIDADORES ==========
-function isValidPhone(phone) {
-    if (!phone) return true;
-    const cleaned = phone.replace(/[\s\-]/g, '');
-    const phoneRegex = /^\+?[0-9]{6,15}$/;
-    return phoneRegex.test(cleaned);
-}
-
-function isValidYearPeriod(value) {
-    if (!value.trim()) return true;
-    return /^[a-zA-Z0-9\-\sáéíóúüñÑ]+$/.test(value.trim());
-}
-
-function isEndDateAfterStart(startVal, endVal) {
-    if (!startVal || !endVal) return true;
-    if (endVal.toLowerCase() === 'actualidad') return true;
-    const startYearMatch = startVal.match(/\b(19|20)\d{2}\b/);
-    const endYearMatch = endVal.match(/\b(19|20)\d{2}\b/);
-    if (!startYearMatch || !endYearMatch) return true;
-    const startYear = parseInt(startYearMatch[0]);
-    const endYear = parseInt(endYearMatch[0]);
-    return endYear >= startYear;
-}
-
-function validateDynamicItem(item, fields) {
-    for (let f of fields) {
-        const value = item[f.name] || '';
-        if (f.name === 'startDate' || f.name === 'endDate' || f.name === 'periodStart' || f.name === 'periodEnd') {
-            if (!isValidYearPeriod(value)) {
-                alert(`El campo "${f.label}" contiene caracteres no permitidos.`);
-                return false;
-            }
-        }
-        if (f.name === 'endDate' && item.startDate && !isEndDateAfterStart(item.startDate, value)) {
-            alert(`La fecha de fin (${value}) no puede ser anterior a la de inicio (${item.startDate}).`);
-            return false;
-        }
-        if (f.name === 'periodEnd' && item.periodStart && !isEndDateAfterStart(item.periodStart, value)) {
-            alert(`La fecha de fin (${value}) no puede ser anterior a la de inicio (${item.periodStart}).`);
-            return false;
-        }
-        if (f.type === 'textarea' && value.length > (f.maxLength || 500)) {
-            alert(`El campo "${f.label}" excede el máximo de ${f.maxLength || 500} caracteres.`);
-            return false;
-        }
-        if (f.type === 'text' && f.maxLength && value.length > f.maxLength) {
-            alert(`El campo "${f.label}" excede el máximo de ${f.maxLength} caracteres.`);
-            return false;
-        }
-        if (f.name === 'phone' && value && !isValidPhone(value)) {
-            alert(`Teléfono "${value}" no válido.`);
-            return false;
-        }
-    }
-    return true;
-}
-
-function validateCurrentStepData() {
-    if (currentStep === 1) {
-        for (let exp of cvData.workExperiences) {
-            if (!validateDynamicItem(exp, listConfigs.work.fields)) return false;
-        }
-    } else if (currentStep === 2) {
-        for (let edu of cvData.educationList) {
-            if (!validateDynamicItem(edu, listConfigs.edu.fields)) return false;
-        }
-    } else if (currentStep === 3) {
-        for (let ref of cvData.references) {
-            if (ref.name || ref.phone || ref.relation) {
-                if (!validateDynamicItem(ref, listConfigs.ref.fields)) return false;
-            }
-        }
-    }
-    return true;
-}
-
-function validatePersonalStep() {
-    const p = cvData.personal;
-    if (!p.fullName.trim()) { alert("❌ Nombre completo obligatorio."); return false; }
-    if (!p.email.trim() || !p.email.includes("@")) { alert("❌ Correo válido requerido."); return false; }
-    if (!p.mobilePhone.trim()) { alert("❌ Teléfono celular obligatorio."); return false; }
-    if (!isValidPhone(p.mobilePhone)) { alert("❌ Teléfono celular no válido (solo números, espacios, guiones, +)."); return false; }
-    if (p.homePhone && !isValidPhone(p.homePhone)) { alert("❌ Teléfono casa no válido."); return false; }
-    return true;
-}
 
 // ========== CARGA DINÁMICA DE PLANTILLAS ==========
 function loadTemplate(templateId) {
@@ -244,9 +269,9 @@ function renderDynamicItems(container, listKey) {
                 const options = f.options.map(opt => `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`).join('');
                 fieldsHtml += `<div><label>${f.label}</label><select data-field="${f.name}" data-idx="${idx}">${options}</select></div>`;
             } else if (f.type === 'textarea') {
-                fieldsHtml += `<div style="grid-column:1/-1;"><label>${f.label}</label><textarea data-field="${f.name}" data-idx="${idx}" rows="2" placeholder="${f.placeholder || ''}" maxlength="${f.maxLength || 500}">${escapeHtml(value)}</textarea><small style="display:block; text-align:right; font-size:0.7rem;">${value.length}/${f.maxLength || 500}</small></div>`;
+                fieldsHtml += `<div style="grid-column:1/-1;"><label>${f.label}</label><textarea data-field="${f.name}" data-idx="${idx}" rows="2" placeholder="${f.placeholder || ''}" maxlength="${f.maxLength || 500}">${window.escapeHtml(value)}</textarea><small style="display:block; text-align:right; font-size:0.7rem;">${value.length}/${f.maxLength || 500}</small></div>`;
             } else {
-                fieldsHtml += `<div><label>${f.label}</label><input type="${f.type}" data-field="${f.name}" data-idx="${idx}" value="${escapeHtml(value)}" placeholder="${f.placeholder || ''}" ${f.maxLength ? `maxlength="${f.maxLength}"` : ''}></div>`;
+                fieldsHtml += `<div><label>${f.label}</label><input type="${f.type}" data-field="${f.name}" data-idx="${idx}" value="${window.escapeHtml(value)}" placeholder="${f.placeholder || ''}" ${f.maxLength ? `maxlength="${f.maxLength}"` : ''}></div>`;
             }
         }
         fieldsHtml += `</div>`;
@@ -259,9 +284,9 @@ function renderDynamicItems(container, listKey) {
             const field = e.target.dataset.field;
             if (!isNaN(idx) && field) {
                 array[idx][field] = e.target.value;
-                if (field === 'phone' && !isValidPhone(e.target.value) && e.target.value) {
+                if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) {
                     e.target.style.borderColor = 'red';
-                } else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && !isValidYearPeriod(e.target.value) && e.target.value) {
+                } else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) {
                     e.target.style.borderColor = 'red';
                 } else {
                     e.target.style.borderColor = '';
@@ -271,10 +296,10 @@ function renderDynamicItems(container, listKey) {
         el.addEventListener('change', (e) => {
             const idx = parseInt(e.target.dataset.idx);
             const field = e.target.dataset.field;
-            if (field === 'phone' && !isValidPhone(e.target.value) && e.target.value) {
+            if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) {
                 alert('Formato de teléfono no válido');
                 e.target.style.borderColor = 'red';
-            } else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && !isValidYearPeriod(e.target.value) && e.target.value) {
+            } else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) {
                 alert('Caracteres no permitidos en la fecha');
                 e.target.style.borderColor = 'red';
             } else {
@@ -315,9 +340,9 @@ function renderPersonalStep() {
             ${['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].map(f => {
                 let label = f === 'fullName' ? 'Nombre completo *' : f === 'birthDate' ? 'Fecha nacimiento' : f === 'mobilePhone' ? 'Teléfono celular *' : f === 'homePhone' ? 'Teléfono casa' : f === 'email' ? 'Correo electrónico *' : f;
                 let type = f === 'birthDate' ? 'date' : (f === 'email' ? 'email' : 'text');
-                return `<div class="form-group"><label>${label}</label><input type="${type}" id="${f}" value="${escapeHtml(p[f])}" ${f === 'mobilePhone' ? 'required' : ''}></div>`;
+                return `<div class="form-group"><label>${label}</label><input type="${type}" id="${f}" value="${window.escapeHtml(p[f])}" ${f === 'mobilePhone' ? 'required' : ''}></div>`;
             }).join('')}
-            <div class="form-group" style="grid-column:1/-1;"><label>Resumen profesional / Perfil</label><textarea id="profileSummary" rows="3" maxlength="500" placeholder="Breve descripción de tu perfil profesional...">${escapeHtml(p.profileSummary)}</textarea></div>
+            <div class="form-group" style="grid-column:1/-1;"><label>Resumen profesional / Perfil</label><textarea id="profileSummary" rows="3" maxlength="500" placeholder="Breve descripción de tu perfil profesional...">${window.escapeHtml(p.profileSummary)}</textarea></div>
             <div class="form-group photo-area"><label>📸 Foto</label><input type="file" id="photoUpload" accept="image/jpeg,image/png"><div><img id="photoPreview" class="photo-preview" src="${p.photoDataURL || 'https://ui-avatars.com/api/?background=3b82f6&color=fff&name=' + encodeURIComponent(p.fullName || 'CV')}"></div></div>
         </div>
         <div class="nav-buttons"><button class="secondary" disabled>◀ Anterior</button><button id="nextStepBtn">Continuar ➤</button></div>
@@ -335,7 +360,7 @@ function renderPersonalStep() {
             el.addEventListener('input', (e) => { cvData.personal[f] = e.target.value; updatePhotoPreview(); });
             if (f === 'mobilePhone' || f === 'homePhone') {
                 el.addEventListener('change', (e) => {
-                    if (!isValidPhone(e.target.value) && e.target.value) {
+                    if (e.target.value && !isValidPhone(e.target.value)) {
                         alert('Formato de teléfono no válido.');
                         e.target.style.borderColor = 'red';
                     } else {
@@ -455,7 +480,7 @@ function renderPreviewAndTemplateStep() {
                 renderPreviewAndTemplateStep();
             } catch (err) {
                 console.error(err);
-                alert('Error al cargar la plantilla');
+                alert('Error al cargar la plantilla. Verifica que el archivo existe y está bien formado.');
             }
         });
     });
@@ -471,7 +496,7 @@ async function updatePreview() {
             const renderFn = await loadTemplate(selectedTemplate);
             previewDiv.innerHTML = renderFn(cvData);
         } catch (err) {
-            previewDiv.innerHTML = '<p>Error cargando la plantilla</p>';
+            previewDiv.innerHTML = '<p>Error cargando la plantilla. Intenta seleccionar otra.</p>';
         }
     }
 }
@@ -489,7 +514,7 @@ async function printCV() {
             img { max-width: 100%; height: auto; break-inside: avoid; }
             @media print { body { margin: 0; padding: 0; } }
         `;
-        const printDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CV ${escapeHtml(cvData.personal.fullName||'')}</title><style>${printStyles}</style></head><body><div class="cv-container">${cvHTML}</div><script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);};<\/script></body></html>`;
+        const printDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CV ${window.escapeHtml(cvData.personal.fullName||'')}</title><style>${printStyles}</style></head><body><div class="cv-container">${cvHTML}</div><script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);};<\/script></body></html>`;
         const w = window.open('', '_blank', 'width=900,height=700');
         if (w) { w.document.write(printDoc); w.document.close(); } else alert("Permite ventanas emergentes.");
     } catch (err) {
