@@ -1,4 +1,4 @@
-// ========== FUNCIONES AUXILIARES GLOBALES (para que las plantillas las vean) ==========
+// ========== FUNCIONES AUXILIARES GLOBALES ==========
 window.escapeHtml = function(str) { return !str ? '' : str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); };
 window.formatDate = function(dateStr) {
     if (!dateStr) return '';
@@ -38,15 +38,14 @@ window.renderReferences = function(template, references) {
     }
 };
 
-// ========== VALIDADORES CONDICIONALES ==========
+// ========== VALIDADORES ==========
 function isValidPhone(phone) {
-    if (!phone) return true; // vacío es válido para opcionales
+    if (!phone) return true;
     const cleaned = phone.replace(/[\s\-]/g, '');
-    const phoneRegex = /^\+?[0-9]{6,15}$/;
-    return phoneRegex.test(cleaned);
+    return /^\+?[0-9]{6,15}$/.test(cleaned);
 }
 function isValidYearPeriod(value) {
-    if (!value.trim()) return true; // vacío válido
+    if (!value.trim()) return true;
     return /^[a-zA-Z0-9\-\sáéíóúüñÑ]+$/.test(value.trim());
 }
 function isEndDateAfterStart(startVal, endVal) {
@@ -90,18 +89,18 @@ function validateDynamicItem(item, fields, requireNonEmpty = false) {
     }
     return true;
 }
-function validateCurrentStepData() {
-    if (currentStep === 1) { // Experiencia laboral
+function validateCurrentStepData(currentStep, cvData, listConfigs) {
+    if (currentStep === 1) {
         for (let exp of cvData.workExperiences) {
             const hasContent = exp.jobTitle || exp.company || exp.startDate || exp.endDate || exp.description;
             if (hasContent && !validateDynamicItem(exp, listConfigs.work.fields, true)) return false;
         }
-    } else if (currentStep === 2) { // Educación
+    } else if (currentStep === 2) {
         for (let edu of cvData.educationList) {
             const hasContent = edu.study || edu.institution || edu.periodStart || edu.periodEnd || edu.duration || edu.description;
             if (hasContent && !validateDynamicItem(edu, listConfigs.edu.fields, true)) return false;
         }
-    } else if (currentStep === 3) { // Referencias
+    } else if (currentStep === 3) {
         for (let ref of cvData.references) {
             const hasContent = ref.name || ref.phone || ref.relation;
             if (hasContent && !validateDynamicItem(ref, listConfigs.ref.fields, true)) return false;
@@ -109,12 +108,12 @@ function validateCurrentStepData() {
     }
     return true;
 }
-function validatePersonalStep() {
+function validatePersonalStep(cvData) {
     const p = cvData.personal;
     if (!p.fullName.trim()) { alert("❌ Nombre completo obligatorio."); return false; }
     if (!p.email.trim() || !p.email.includes("@")) { alert("❌ Correo válido requerido."); return false; }
     if (!p.mobilePhone.trim()) { alert("❌ Teléfono celular obligatorio."); return false; }
-    if (!isValidPhone(p.mobilePhone)) { alert("❌ Teléfono celular no válido (solo números, espacios, guiones, +)."); return false; }
+    if (!isValidPhone(p.mobilePhone)) { alert("❌ Teléfono celular no válido."); return false; }
     if (p.homePhone && !isValidPhone(p.homePhone)) { alert("❌ Teléfono casa no válido."); return false; }
     return true;
 }
@@ -130,7 +129,6 @@ let cvData = {
     references: []
 };
 
-// Configuración de listas dinámicas
 const listConfigs = {
     work: {
         array: () => cvData.workExperiences,
@@ -176,10 +174,33 @@ const listConfigs = {
     }
 };
 
-// Inicializar con una entrada vacía
+// Inicializar arrays
 cvData.workExperiences.push({ ...listConfigs.work.defaultItem });
 cvData.educationList.push({ ...listConfigs.edu.defaultItem });
 
+// ========== AUTO-SAVE: CARGAR DATOS GUARDADOS ==========
+if (window.AutoSave) {
+    const saved = window.AutoSave.load();
+    if (saved && saved.personal && saved.workExperiences && saved.educationList && saved.references) {
+        try {
+            cvData = saved;
+            if (!cvData.workExperiences?.length) cvData.workExperiences = [{ ...listConfigs.work.defaultItem }];
+            if (!cvData.educationList?.length) cvData.educationList = [{ ...listConfigs.edu.defaultItem }];
+            if (cvData.personal === undefined) cvData.personal = {};
+            if (cvData.personal.profileSummary === undefined) cvData.personal.profileSummary = "";
+            if (!cvData.references) cvData.references = [];
+            // Limpiar elementos nulos
+            cvData.workExperiences = cvData.workExperiences.filter(i => i !== null);
+            cvData.educationList = cvData.educationList.filter(i => i !== null);
+        } catch(e) {
+            console.warn("Error restaurando datos", e);
+        }
+    }
+    window.AutoSave.start(() => cvData);
+}
+window.cvData = cvData;
+
+// ========== VARIABLES DE NAVEGACIÓN ==========
 let currentStep = 0;
 const totalSteps = 5;
 let selectedTemplate = "classic";
@@ -188,38 +209,33 @@ let loadedTemplates = {};
 const stepIndicatorDiv = document.getElementById("stepIndicator");
 const stepContentDiv = document.getElementById("stepContent");
 
-// ========== CARGA DINÁMICA DE PLANTILLAS ==========
+// ========== CARGA DE PLANTILLAS ==========
 function loadTemplate(templateId) {
     return new Promise((resolve, reject) => {
-        if (loadedTemplates[templateId]) {
-            resolve(loadedTemplates[templateId]);
-            return;
-        }
+        if (loadedTemplates[templateId]) return resolve(loadedTemplates[templateId]);
         const script = document.createElement('script');
         script.src = `templates/${templateId}.js`;
         script.onload = () => {
             if (window.templateExports && window.templateExports.id === templateId) {
                 loadedTemplates[templateId] = window.templateExports.render;
                 resolve(window.templateExports.render);
-            } else {
-                reject(new Error(`La plantilla ${templateId} no se registró correctamente`));
-            }
+            } else reject(new Error(`Plantilla ${templateId} no registrada`));
         };
-        script.onerror = () => reject(new Error(`No se pudo cargar la plantilla ${templateId}`));
+        script.onerror = () => reject(new Error(`No se pudo cargar ${templateId}`));
         document.head.appendChild(script);
     });
 }
 
-// ========== INDICADOR DE PASO ==========
+// ========== INDICADOR ==========
 function updateIndicator() {
-    const stepsNames = ["📝 Datos Personales", "💼 Experiencia Laboral", "🎓 Educación", "📞 Referencias", "🎨 Plantilla & Vista Previa"];
-    stepIndicatorDiv.innerHTML = stepsNames.map((name, idx) => `<div class="step-badge ${idx === currentStep ? 'active' : ''}">${name}</div>`).join('');
+    const steps = ["📝 Datos Personales", "💼 Experiencia Laboral", "🎓 Educación", "📞 Referencias", "🎨 Plantilla & Vista Previa"];
+    stepIndicatorDiv.innerHTML = steps.map((name, idx) => `<div class="step-badge ${idx === currentStep ? 'active' : ''}">${name}</div>`).join('');
 }
 
 function goToStep(step) {
     if (step === currentStep) return;
-    if (currentStep === 0 && step > 0 && !validatePersonalStep()) return;
-    if ((currentStep === 1 || currentStep === 2 || currentStep === 3) && step > currentStep && !validateCurrentStepData()) return;
+    if (currentStep === 0 && step > 0 && !validatePersonalStep(cvData)) return;
+    if ((currentStep === 1 || currentStep === 2 || currentStep === 3) && step > currentStep && !validateCurrentStepData(currentStep, cvData, listConfigs)) return;
     if (step >= 0 && step < totalSteps) {
         currentStep = step;
         renderCurrentStep();
@@ -235,17 +251,10 @@ function renderCurrentStep() {
     updateIndicator();
 }
 
-// ========== MANEJO DE LISTAS DINÁMICAS ==========
+// ========== LISTAS DINÁMICAS ==========
 function renderDynamicListStep(listKey, title, addButtonText, nextStep) {
     const cfg = listConfigs[listKey];
-    const html = `
-        <div id="${listKey}Container"></div>
-        <button id="add${listKey}Btn" class="add-button">${addButtonText}</button>
-        <div class="nav-buttons">
-            <button id="prevStep${currentStep-1}" class="secondary">◀ Anterior</button>
-            <button id="nextStep${nextStep}" class="">Continuar ➤</button>
-        </div>
-    `;
+    const html = `<div id="${listKey}Container"></div><button id="add${listKey}Btn" class="add-button">${addButtonText}</button><div class="nav-buttons"><button id="prevStep${currentStep-1}" class="secondary">◀ Anterior</button><button id="nextStep${nextStep}">Continuar ➤</button></div>`;
     stepContentDiv.innerHTML = html;
     const container = document.getElementById(`${listKey}Container`);
     const render = () => renderDynamicItems(container, listKey);
@@ -284,34 +293,16 @@ function renderDynamicItems(container, listKey) {
             const field = e.target.dataset.field;
             if (!isNaN(idx) && field) {
                 array[idx][field] = e.target.value;
-                if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) {
-                    e.target.style.borderColor = 'red';
-                } else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) {
-                    e.target.style.borderColor = 'red';
-                } else {
-                    e.target.style.borderColor = '';
-                }
+                if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) e.target.style.borderColor = 'red';
+                else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) e.target.style.borderColor = 'red';
+                else e.target.style.borderColor = '';
             }
         });
         el.addEventListener('change', (e) => {
             const idx = parseInt(e.target.dataset.idx);
             const field = e.target.dataset.field;
-            if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) {
-                alert('Formato de teléfono no válido');
-                e.target.style.borderColor = 'red';
-            } else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) {
-                alert('Caracteres no permitidos en la fecha');
-                e.target.style.borderColor = 'red';
-            } else {
-                e.target.style.borderColor = '';
-            }
-        });
-    });
-    container.querySelectorAll('select').forEach(sel => {
-        sel.addEventListener('change', (e) => {
-            const idx = parseInt(e.target.dataset.idx);
-            const field = e.target.dataset.field;
-            if (!isNaN(idx) && field) array[idx][field] = e.target.value;
+            if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) alert('Teléfono no válido');
+            else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) alert('Formato de fecha no válido');
         });
     });
     container.querySelectorAll('.remove-btn').forEach(btn => {
@@ -348,27 +339,12 @@ function renderPersonalStep() {
         <div class="nav-buttons"><button class="secondary" disabled>◀ Anterior</button><button id="nextStepBtn">Continuar ➤</button></div>
     `;
     stepContentDiv.innerHTML = html;
-
     document.getElementById('resetDataBtnPersonal')?.addEventListener('click', resetAllData);
     document.getElementById('exportDataBtnPersonal')?.addEventListener('click', exportData);
     document.getElementById('importFileInputPersonal')?.addEventListener('change', importData);
-
-    const personalFields = ['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'];
-    personalFields.forEach(f => {
+    ['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].forEach(f => {
         const el = document.getElementById(f);
-        if (el) {
-            el.addEventListener('input', (e) => { cvData.personal[f] = e.target.value; updatePhotoPreview(); });
-            if (f === 'mobilePhone' || f === 'homePhone') {
-                el.addEventListener('change', (e) => {
-                    if (e.target.value && !isValidPhone(e.target.value)) {
-                        alert('Formato de teléfono no válido.');
-                        e.target.style.borderColor = 'red';
-                    } else {
-                        e.target.style.borderColor = '';
-                    }
-                });
-            }
-        }
+        if (el) el.addEventListener('input', (e) => { cvData.personal[f] = e.target.value; updatePhotoPreview(); });
     });
     document.getElementById('profileSummary')?.addEventListener('input', (e) => { cvData.personal.profileSummary = e.target.value; });
     document.getElementById('photoUpload')?.addEventListener('change', e => {
@@ -382,10 +358,10 @@ function renderPersonalStep() {
         const preview = document.getElementById('photoPreview');
         if(preview && !cvData.personal.photoDataURL) preview.src = `https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(cvData.personal.fullName || 'CV')}`;
     }
-    document.getElementById('nextStepBtn')?.addEventListener('click', () => { if(validatePersonalStep()) goToStep(1); });
+    document.getElementById('nextStepBtn')?.addEventListener('click', () => { if(validatePersonalStep(cvData)) goToStep(1); });
 }
 
-// ========== IMPORTAR / EXPORTAR / RESET ==========
+// ========== EXPORTAR, IMPORTAR, RESET ==========
 function exportData() {
     const dataToExport = JSON.parse(JSON.stringify(cvData));
     const jsonStr = JSON.stringify(dataToExport, null, 2);
@@ -393,37 +369,36 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const nombreArchivo = cvData.personal.fullName ? cvData.personal.fullName.replace(/\s/g, '_') : 'cv_data';
-    a.download = `${nombreArchivo}.json`;
+    a.download = `${cvData.personal.fullName?.replace(/\s/g, '_') || 'cv_data'}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     alert("✅ Datos exportados.");
+    if (window.AutoSave) window.AutoSave.forceSave(cvData);
 }
-
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = (e) => {
         try {
-            const importedData = JSON.parse(e.target.result);
-            if (importedData.personal && importedData.workExperiences && importedData.educationList && importedData.references) {
-                cvData = importedData;
+            const imported = JSON.parse(e.target.result);
+            if (imported.personal && imported.workExperiences && imported.educationList && imported.references) {
+                cvData = imported;
                 if (!cvData.workExperiences.length) cvData.workExperiences.push({ ...listConfigs.work.defaultItem });
                 if (!cvData.educationList.length) cvData.educationList.push({ ...listConfigs.edu.defaultItem });
                 if (cvData.personal.profileSummary === undefined) cvData.personal.profileSummary = "";
                 currentStep = 0;
                 renderCurrentStep();
                 alert("✅ Datos importados.");
+                if (window.AutoSave) window.AutoSave.forceSave(cvData);
             } else alert("❌ Formato incorrecto.");
-        } catch (error) { alert("❌ Error al leer archivo."); }
+        } catch (err) { alert("❌ Error al leer archivo."); }
         event.target.value = '';
     };
     reader.readAsText(file);
 }
-
 function resetAllData() {
     if (confirm("⚠️ ¿Borrar todos los datos? No se puede deshacer.")) {
         cvData = {
@@ -437,90 +412,58 @@ function resetAllData() {
         currentStep = 0;
         renderCurrentStep();
         alert("✅ Todos los datos eliminados.");
+        if (window.AutoSave) window.AutoSave.forceSave(cvData);
     }
 }
 
-// ========== PASO FINAL: SELECTOR DE PLANTILLAS Y VISTA PREVIA ==========
+// ========== PASO FINAL: PLANTILLAS Y PREVIEW ==========
 function renderPreviewAndTemplateStep() {
-    const templatesList = window.cvTemplatesList || [];
-    if (templatesList.length === 0) {
-        stepContentDiv.innerHTML = '<div>Error: No se encontraron plantillas. Asegúrate de que el archivo templates/config.js esté cargado correctamente.</div>';
-        return;
-    }
-    const selectorHtml = templatesList.map(t => 
-        `<div data-template="${t.id}" class="template-option ${selectedTemplate === t.id ? 'selected' : ''}">${t.icono} ${t.nombre}</div>`
-    ).join('');
+    const templates = window.cvTemplatesList || [];
+    if (!templates.length) { stepContentDiv.innerHTML = '<div>Error: No se encontraron plantillas.</div>'; return; }
+    const selector = templates.map(t => `<div data-template="${t.id}" class="template-option ${selectedTemplate === t.id ? 'selected' : ''}">${t.icono} ${t.nombre}</div>`).join('');
     const html = `
-        <div style="display: flex; justify-content: space-between; gap: 0.8rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; margin-bottom:1rem;">
             <button id="resetDataBtnFinal" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display:flex; gap:0.5rem;">
                 <button id="exportDataBtnFinal" class="outline">💾 Exportar</button>
                 <label for="importFileInputFinal" style="background:#10b981; color:white; padding:0.6rem 1.2rem; border-radius:40px; cursor:pointer;">📂 Cargar</label>
                 <input type="file" id="importFileInputFinal" accept=".json" style="display:none;">
             </div>
         </div>
-        <div class="template-selector" id="templateSelector">
-            ${selectorHtml}
-        </div>
+        <div class="template-selector">${selector}</div>
         <div id="livePreview" class="cv-preview"></div>
         <div class="nav-buttons"><button id="prevStep3" class="secondary">◀ Editar</button><button id="printBtn">🖨️ Imprimir</button></div>
     `;
     stepContentDiv.innerHTML = html;
-    
     document.getElementById('resetDataBtnFinal')?.addEventListener('click', resetAllData);
     document.getElementById('exportDataBtnFinal')?.addEventListener('click', exportData);
     document.getElementById('importFileInputFinal')?.addEventListener('change', importData);
-    
-    document.querySelectorAll('.template-option').forEach(opt => {
-        opt.addEventListener('click', async (e) => {
-            const newTemplate = e.currentTarget.dataset.template;
-            selectedTemplate = newTemplate;
-            try {
-                await loadTemplate(newTemplate);
-                renderPreviewAndTemplateStep();
-            } catch (err) {
-                console.error(err);
-                alert('Error al cargar la plantilla. Verifica que el archivo existe y está bien formado.');
-            }
-        });
-    });
+    document.querySelectorAll('.template-option').forEach(opt => opt.addEventListener('click', async (e) => {
+        selectedTemplate = e.currentTarget.dataset.template;
+        try { await loadTemplate(selectedTemplate); renderPreviewAndTemplateStep(); } catch(err) { alert('Error cargando plantilla'); }
+    }));
     updatePreview();
     document.getElementById('prevStep3')?.addEventListener('click', () => goToStep(3));
-    document.getElementById('printBtn')?.addEventListener('click', () => printCV());
+    document.getElementById('printBtn')?.addEventListener('click', printCV);
 }
-
 async function updatePreview() {
-    const previewDiv = document.getElementById('livePreview');
-    if (previewDiv && selectedTemplate) {
-        try {
-            const renderFn = await loadTemplate(selectedTemplate);
-            previewDiv.innerHTML = renderFn(cvData);
-        } catch (err) {
-            previewDiv.innerHTML = '<p>Error cargando la plantilla. Intenta seleccionar otra.</p>';
-        }
-    }
+    const preview = document.getElementById('livePreview');
+    if (!preview || !selectedTemplate) return;
+    try {
+        const renderFn = await loadTemplate(selectedTemplate);
+        preview.innerHTML = renderFn(cvData);
+    } catch { preview.innerHTML = '<p>Error cargando plantilla.</p>'; }
 }
-
 async function printCV() {
     try {
         const renderFn = await loadTemplate(selectedTemplate);
         const cvHTML = renderFn(cvData);
-        const printStyles = `
-            @page { margin: 1.2cm 0.8cm; size: A4; }
-            body { margin: 0; padding: 0; background: white; font-family: 'Segoe UI', Roboto, sans-serif; }
-            .cv-container { max-width: 100%; margin: 0 auto; }
-            .cv-section { break-inside: avoid; page-break-inside: avoid; }
-            h1, h2, h3 { break-after: avoid; }
-            img { max-width: 100%; height: auto; break-inside: avoid; }
-            @media print { body { margin: 0; padding: 0; } }
-        `;
-        const printDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CV ${window.escapeHtml(cvData.personal.fullName||'')}</title><style>${printStyles}</style></head><body><div class="cv-container">${cvHTML}</div><script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);};<\/script></body></html>`;
+        const styles = `@page{margin:1.2cm 0.8cm;size:A4}body{margin:0;padding:0;background:white}.cv-container{max-width:100%}.cv-section{break-inside:avoid}h1,h2,h3{break-after:avoid}img{max-width:100%;height:auto}`;
+        const doc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CV ${window.escapeHtml(cvData.personal.fullName||'')}</title><style>${styles}</style></head><body><div class="cv-container">${cvHTML}</div><script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);};<\/script></body></html>`;
         const w = window.open('', '_blank', 'width=900,height=700');
-        if (w) { w.document.write(printDoc); w.document.close(); } else alert("Permite ventanas emergentes.");
-    } catch (err) {
-        alert('Error al generar la vista de impresión');
-    }
+        if (w) { w.document.write(doc); w.document.close(); } else alert("Permite ventanas emergentes.");
+    } catch { alert('Error al imprimir'); }
 }
 
-// Iniciar aplicación
+// Iniciar
 renderCurrentStep();

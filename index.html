@@ -14,9 +14,11 @@
         </div>
         <div class="step-content" id="stepContent"></div>
     </div>
-    <!-- Cargar configuración de plantillas primero -->
+
+    <!-- PRIMERO cargar config y módulos (sin que dependan de nada) -->
     <script src="templates/config.js"></script>
-    <!-- Luego el script principal -->
+    <script src="modules/autoSave.js"></script>
+    <!-- LUEGO el script principal, que espera que AutoSave exista -->
     <script src="script.js"></script>
 </body>
 </html>
