@@ -1,469 +1,232 @@
-// ========== FUNCIONES AUXILIARES GLOBALES ==========
-window.escapeHtml = function(str) { return !str ? '' : str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); };
-window.formatDate = function(dateStr) {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+// ==================== 1. FUNCIONES AUXILIARES GLOBALES ====================
+window.escapeHtml = s => !s ? '' : s.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+window.formatDate = d => d ? (d.split('-').reverse().join('/')) : '';
+window.renderSocialLinks = (tpl, p) => {
+    const items = [p.facebook && `👍 Facebook: ${window.escapeHtml(p.facebook)}`, p.instagram && `📷 Instagram: ${window.escapeHtml(p.instagram)}`, p.github && `🐙 GitHub: ${window.escapeHtml(p.github)}`].filter(Boolean);
+    return items.length ? `<div>${tpl === 'minimal' ? 'Redes sociales: ' : ''}${items.join(' | ')}</div>` : '';
 };
-window.renderSocialLinks = function(template, personal) {
-    const socials = [];
-    if (personal.facebook) socials.push({ name: "Facebook", value: personal.facebook, emoji: "👍" });
-    if (personal.instagram) socials.push({ name: "Instagram", value: personal.instagram, emoji: "📷" });
-    if (personal.github) socials.push({ name: "GitHub", value: personal.github, emoji: "🐙" });
-    if (socials.length === 0) return "";
-    if (template === 'minimal') {
-        return `<div><strong>Redes sociales:</strong> ${socials.map(s => `${s.name}: ${window.escapeHtml(s.value)}`).join(' | ')}</div>`;
-    } else {
-        return `<div>${socials.map(s => `<strong>${s.emoji} ${s.name}:</strong> ${window.escapeHtml(s.value)}`).join(' | ')}</div>`;
-    }
-};
-window.renderWorkExperiences = function(workExperiences) {
-    const items = workExperiences.filter(w => w.jobTitle || w.company);
-    if (!items.length) return '<p>Sin experiencia registrada</p>';
-    return items.map(w => `<div><strong>${window.escapeHtml(w.jobTitle)}</strong> en ${window.escapeHtml(w.company)} (${window.escapeHtml(w.startDate)} - ${window.escapeHtml(w.endDate)})<br><span>${window.escapeHtml(w.description)}</span></div><br>`).join('');
-};
-window.renderEducation = function(educationList) {
-    const items = educationList.filter(e => e.study);
-    if (!items.length) return '<p>Sin estudios registrados</p>';
-    return items.map(e => `<div><strong>${window.escapeHtml(e.study)}</strong> - ${window.escapeHtml(e.institution)} (${window.escapeHtml(e.periodStart)}/${window.escapeHtml(e.periodEnd)}) - ${window.escapeHtml(e.status)} | Duración: ${window.escapeHtml(e.duration)}<br><span>${window.escapeHtml(e.description)}</span></div><br>`).join('');
-};
-window.renderReferences = function(template, references) {
-    const items = references.filter(r => r.name);
-    if (!items.length) return '<p>No hay referencias</p>';
-    if (template === 'minimal') {
-        return items.map(r => `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | Teléfono: ${window.escapeHtml(r.phone)}</div>`).join('');
-    } else {
-        return items.map(r => `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | 📞 ${window.escapeHtml(r.phone)}</div>`).join('');
-    }
-};
+window.renderWorkExperiences = arr => arr.filter(w => w.jobTitle || w.company).map(w => `<div><strong>${window.escapeHtml(w.jobTitle)}</strong> en ${window.escapeHtml(w.company)} (${window.escapeHtml(w.startDate)} - ${window.escapeHtml(w.endDate)})<br><span>${window.escapeHtml(w.description)}</span></div><br>`).join('') || '<p>Sin experiencia registrada</p>';
+window.renderEducation = arr => arr.filter(e => e.study).map(e => `<div><strong>${window.escapeHtml(e.study)}</strong> - ${window.escapeHtml(e.institution)} (${window.escapeHtml(e.periodStart)}/${window.escapeHtml(e.periodEnd)}) - ${window.escapeHtml(e.status)} | Duración: ${window.escapeHtml(e.duration)}<br><span>${window.escapeHtml(e.description)}</span></div><br>`).join('') || '<p>Sin estudios registrados</p>';
+window.renderSkills = s => s?.length ? `<ul>${s.map(v => `<li>${window.escapeHtml(v)}</li>`).join('')}</ul>` : '<p>No se han añadido habilidades.</p>';
+window.renderLanguages = l => l?.length ? `<ul>${l.map(l => `<li><strong>${window.escapeHtml(l.name)}</strong> (${window.escapeHtml(l.level)})</li>`).join('')}</ul>` : '<p>No se han añadido idiomas.</p>';
+window.renderCertifications = c => c?.length ? `<ul>${c.map(c => `<li><strong>${window.escapeHtml(c.name)}</strong> - ${window.escapeHtml(c.institution)} (${window.escapeHtml(c.date)})</li>`).join('')}</ul>` : '<p>No se han añadido certificaciones.</p>';
+window.renderReferences = (tpl, refs) => refs.filter(r => r.name).map(r => tpl === 'minimal' ? `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | Teléfono: ${window.escapeHtml(r.phone)}</div>` : `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | 📞 ${window.escapeHtml(r.phone)}</div>`).join('') || '<p>No hay referencias</p>';
 
-// ========== VALIDADORES ==========
-function isValidPhone(phone) {
-    if (!phone) return true;
-    const cleaned = phone.replace(/[\s\-]/g, '');
-    return /^\+?[0-9]{6,15}$/.test(cleaned);
+// ==================== 2. VALIDACIONES ====================
+function isValidPhone(p) { return !p || /^\+?[0-9\s\-]{6,15}$/.test(p.replace(/[\s\-]/g, '')); }
+function isValidYearPeriod(v) { return !v.trim() || /^[a-zA-Z0-9\-\sáéíóúüñÑ]+$/.test(v.trim()); }
+function isEndDateAfterStart(s, e) {
+    if (!s || !e || e.toLowerCase() === 'actualidad') return true;
+    const sY = (s.match(/\b(19|20)\d{2}\b/) || [])[0], eY = (e.match(/\b(19|20)\d{2}\b/) || [])[0];
+    return !sY || !eY || parseInt(eY) >= parseInt(sY);
 }
-function isValidYearPeriod(value) {
-    if (!value.trim()) return true;
-    return /^[a-zA-Z0-9\-\sáéíóúüñÑ]+$/.test(value.trim());
-}
-function isEndDateAfterStart(startVal, endVal) {
-    if (!startVal || !endVal) return true;
-    if (endVal.toLowerCase() === 'actualidad') return true;
-    const startYearMatch = startVal.match(/\b(19|20)\d{2}\b/);
-    const endYearMatch = endVal.match(/\b(19|20)\d{2}\b/);
-    if (!startYearMatch || !endYearMatch) return true;
-    return parseInt(endYearMatch[0]) >= parseInt(startYearMatch[0]);
-}
-function validateDynamicItem(item, fields, requireNonEmpty = false) {
+function validateDynamicItem(item, fields, required = false) {
     for (let f of fields) {
-        const value = item[f.name] || '';
-        if (!requireNonEmpty && !value) continue;
-        if (f.name === 'startDate' || f.name === 'endDate' || f.name === 'periodStart' || f.name === 'periodEnd') {
-            if (!isValidYearPeriod(value)) {
-                alert(`El campo "${f.label}" contiene caracteres no permitidos.`);
-                return false;
-            }
-        }
-        if (f.name === 'endDate' && item.startDate && !isEndDateAfterStart(item.startDate, value)) {
-            alert(`La fecha de fin (${value}) no puede ser anterior a la de inicio (${item.startDate}).`);
-            return false;
-        }
-        if (f.name === 'periodEnd' && item.periodStart && !isEndDateAfterStart(item.periodStart, value)) {
-            alert(`La fecha de fin (${value}) no puede ser anterior a la de inicio (${item.periodStart}).`);
-            return false;
-        }
-        if (f.type === 'textarea' && value.length > (f.maxLength || 500)) {
-            alert(`El campo "${f.label}" excede el máximo de ${f.maxLength || 500} caracteres.`);
-            return false;
-        }
-        if (f.type === 'text' && f.maxLength && value.length > f.maxLength) {
-            alert(`El campo "${f.label}" excede el máximo de ${f.maxLength} caracteres.`);
-            return false;
-        }
-        if (f.name === 'phone' && value && !isValidPhone(value)) {
-            alert(`Teléfono "${value}" no válido.`);
-            return false;
-        }
+        const val = item[f.name] || '';
+        if (!required && !val) continue;
+        if (['startDate','endDate','periodStart','periodEnd'].includes(f.name) && !isValidYearPeriod(val)) { alert(`"${f.label}" tiene caracteres no permitidos.`); return false; }
+        if (f.name === 'endDate' && item.startDate && !isEndDateAfterStart(item.startDate, val)) { alert(`Fin (${val}) no puede ser anterior a inicio (${item.startDate}).`); return false; }
+        if (f.name === 'periodEnd' && item.periodStart && !isEndDateAfterStart(item.periodStart, val)) { alert(`Fin (${val}) no puede ser anterior a inicio (${item.periodStart}).`); return false; }
+        if (f.name === 'phone' && val && !isValidPhone(val)) { alert(`Teléfono "${val}" no válido.`); return false; }
     }
     return true;
 }
-function validateCurrentStepData(currentStep, cvData, listConfigs) {
-    if (currentStep === 1) {
-        for (let exp of cvData.workExperiences) {
-            const hasContent = exp.jobTitle || exp.company || exp.startDate || exp.endDate || exp.description;
-            if (hasContent && !validateDynamicItem(exp, listConfigs.work.fields, true)) return false;
-        }
-    } else if (currentStep === 2) {
-        for (let edu of cvData.educationList) {
-            const hasContent = edu.study || edu.institution || edu.periodStart || edu.periodEnd || edu.duration || edu.description;
-            if (hasContent && !validateDynamicItem(edu, listConfigs.edu.fields, true)) return false;
-        }
-    } else if (currentStep === 3) {
-        for (let ref of cvData.references) {
-            const hasContent = ref.name || ref.phone || ref.relation;
-            if (hasContent && !validateDynamicItem(ref, listConfigs.ref.fields, true)) return false;
-        }
-    }
+function validateCurrentStepData(step) {
+    if (step === 1) return cvData.workExperiences.every(e => (!e.jobTitle && !e.company && !e.startDate && !e.endDate && !e.description) || validateDynamicItem(e, listConfigs.work.fields, true));
+    if (step === 2) return cvData.educationList.every(e => (!e.study && !e.institution && !e.periodStart && !e.periodEnd && !e.duration && !e.description) || validateDynamicItem(e, listConfigs.edu.fields, true));
+    if (step === 3) return cvData.references.every(r => (!r.name && !r.phone && !r.relation) || validateDynamicItem(r, listConfigs.ref.fields, true));
+    if (step === 5) return cvData.languages.every(l => !l.name || l.name.trim() || (alert("Idioma: nombre vacío"), false));
+    if (step === 6) return cvData.certifications.every(c => !c.name || c.name.trim() || (alert("Certificación: nombre vacío"), false));
     return true;
 }
-function validatePersonalStep(cvData) {
+function validatePersonalStep() {
     const p = cvData.personal;
-    if (!p.fullName.trim()) { alert("❌ Nombre completo obligatorio."); return false; }
-    if (!p.email.trim() || !p.email.includes("@")) { alert("❌ Correo válido requerido."); return false; }
-    if (!p.mobilePhone.trim()) { alert("❌ Teléfono celular obligatorio."); return false; }
-    if (!isValidPhone(p.mobilePhone)) { alert("❌ Teléfono celular no válido."); return false; }
-    if (p.homePhone && !isValidPhone(p.homePhone)) { alert("❌ Teléfono casa no válido."); return false; }
+    if (!p.fullName.trim()) return alert("❌ Nombre completo obligatorio."), false;
+    if (!p.email.trim() || !p.email.includes('@')) return alert("❌ Correo válido requerido."), false;
+    if (!p.mobilePhone.trim()) return alert("❌ Teléfono celular obligatorio."), false;
+    if (!isValidPhone(p.mobilePhone)) return alert("❌ Teléfono celular no válido."), false;
+    if (p.homePhone && !isValidPhone(p.homePhone)) return alert("❌ Teléfono casa no válido."), false;
     return true;
 }
 
-// ========== ESTADO GLOBAL ==========
+// ==================== 3. ESTADO GLOBAL ====================
 let cvData = {
-    personal: {
-        fullName: "", birthDate: "", address: "", mobilePhone: "", homePhone: "", email: "",
-        facebook: "", instagram: "", github: "", photoDataURL: "", profileSummary: ""
-    },
-    workExperiences: [],
-    educationList: [],
-    references: []
+    personal: { fullName: '', birthDate: '', address: '', mobilePhone: '', homePhone: '', email: '', facebook: '', instagram: '', github: '', photoDataURL: '', profileSummary: '' },
+    workExperiences: [], educationList: [], references: [], skills: [], languages: [], certifications: []
 };
 
+// ==================== 4. CONFIGURACIÓN DE LISTAS DINÁMICAS ====================
 const listConfigs = {
-    work: {
-        array: () => cvData.workExperiences,
-        defaultItem: { jobTitle: "", company: "", startDate: "", endDate: "", description: "" },
-        minItems: 1,
-        emptyMessage: "Debe tener al menos una experiencia",
-        fields: [
-            { name: "jobTitle", label: "Cargo", type: "text", placeholder: "Ej: Desarrollador Frontend", maxLength: 100 },
-            { name: "company", label: "Empresa", type: "text", placeholder: "Nombre de la empresa", maxLength: 100 },
-            { name: "startDate", label: "Desde", type: "text", placeholder: "2020 o Ene 2020" },
-            { name: "endDate", label: "Hasta", type: "text", placeholder: "2023 o Actualidad" },
-            { name: "description", label: "Descripción", type: "textarea", placeholder: "Logros, responsabilidades...", maxLength: 500, fullWidth: true }
-        ],
-        gridCols: "1fr 1fr"
-    },
-    edu: {
-        array: () => cvData.educationList,
-        defaultItem: { study: "", institution: "", periodStart: "", periodEnd: "", status: "finalizado", duration: "", description: "" },
-        minItems: 1,
-        emptyMessage: "Debe tener al menos un estudio",
-        fields: [
-            { name: "study", label: "Estudio", type: "text", placeholder: "Ingeniería, Bootcamp...", maxLength: 100 },
-            { name: "institution", label: "Institución", type: "text", placeholder: "Universidad, plataforma", maxLength: 100 },
-            { name: "periodStart", label: "Desde", type: "text", placeholder: "2020" },
-            { name: "periodEnd", label: "Hasta", type: "text", placeholder: "2023" },
-            { name: "status", label: "Estado", type: "select", options: ["finalizado", "en curso"] },
-            { name: "duration", label: "Duración", type: "text", placeholder: "200 horas / 6 meses", maxLength: 50 },
-            { name: "description", label: "Descripción", type: "textarea", placeholder: "Logros, materias...", maxLength: 500, fullWidth: true }
-        ],
-        gridCols: "1fr 1fr"
-    },
-    ref: {
-        array: () => cvData.references,
-        defaultItem: { name: "", phone: "", relation: "" },
-        minItems: 0,
-        emptyMessage: null,
-        fields: [
-            { name: "name", label: "Nombre", type: "text", placeholder: "Nombre completo", maxLength: 100 },
-            { name: "phone", label: "Teléfono", type: "tel", placeholder: "+123456789" },
-            { name: "relation", label: "Relación", type: "text", placeholder: "Ex jefe, compañero...", maxLength: 100 }
-        ],
-        gridCols: "1fr 1fr 1fr"
-    }
+    work: { array: ()=>cvData.workExperiences, defaultItem: { jobTitle:'', company:'', startDate:'', endDate:'', description:'' }, minItems:1, emptyMsg:'Debe tener al menos una experiencia', fields: [ {name:'jobTitle',label:'Cargo'},{name:'company',label:'Empresa'},{name:'startDate',label:'Desde'},{name:'endDate',label:'Hasta'},{name:'description',label:'Descripción',type:'textarea'} ], gridCols:'1fr 1fr' },
+    edu: { array: ()=>cvData.educationList, defaultItem: { study:'', institution:'', periodStart:'', periodEnd:'', status:'finalizado', duration:'', description:'' }, minItems:1, emptyMsg:'Debe tener al menos un estudio', fields: [ {name:'study',label:'Estudio'},{name:'institution',label:'Institución'},{name:'periodStart',label:'Desde'},{name:'periodEnd',label:'Hasta'},{name:'status',label:'Estado',type:'select',options:['finalizado','en curso']},{name:'duration',label:'Duración'},{name:'description',label:'Descripción',type:'textarea'} ], gridCols:'1fr 1fr' },
+    ref: { array: ()=>cvData.references, defaultItem: { name:'', phone:'', relation:'' }, minItems:0, fields: [ {name:'name',label:'Nombre'},{name:'phone',label:'Teléfono'},{name:'relation',label:'Relación'} ], gridCols:'1fr 1fr 1fr' },
+    skills: { array: ()=>cvData.skills, defaultItem: '', minItems:0, fields: [ {name:'value',label:'Habilidad'} ], gridCols:'1fr' },
+    languages: { array: ()=>cvData.languages, defaultItem: { name:'', level:'Intermedio (B1)' }, minItems:0, fields: [ {name:'name',label:'Idioma'},{name:'level',label:'Nivel',type:'select',options:['Básico (A1)','Básico (A2)','Intermedio (B1)','Intermedio (B2)','Avanzado (C1)','Avanzado (C2)','Nativo']} ], gridCols:'1fr 1fr' },
+    certifications: { array: ()=>cvData.certifications, defaultItem: { name:'', institution:'', date:'' }, minItems:0, fields: [ {name:'name',label:'Certificación'},{name:'institution',label:'Institución'},{name:'date',label:'Fecha'} ], gridCols:'1fr 1fr 1fr' }
 };
-
-// Inicializar arrays
 cvData.workExperiences.push({ ...listConfigs.work.defaultItem });
 cvData.educationList.push({ ...listConfigs.edu.defaultItem });
 
-// ========== AUTO-SAVE: CARGAR DATOS GUARDADOS ==========
-if (window.AutoSave) {
-    const saved = window.AutoSave.load();
-    if (saved && saved.personal && saved.workExperiences && saved.educationList && saved.references) {
-        try {
-            cvData = saved;
-            if (!cvData.workExperiences?.length) cvData.workExperiences = [{ ...listConfigs.work.defaultItem }];
-            if (!cvData.educationList?.length) cvData.educationList = [{ ...listConfigs.edu.defaultItem }];
-            if (cvData.personal === undefined) cvData.personal = {};
-            if (cvData.personal.profileSummary === undefined) cvData.personal.profileSummary = "";
-            if (!cvData.references) cvData.references = [];
-            // Limpiar elementos nulos
-            cvData.workExperiences = cvData.workExperiences.filter(i => i !== null);
-            cvData.educationList = cvData.educationList.filter(i => i !== null);
-        } catch(e) {
-            console.warn("Error restaurando datos", e);
-        }
+// ==================== 5. AUTO-SAVE ====================
+(function() {
+    const KEY = 'cvGeneratorData';
+    let last = null;
+    function save() { try { const c = JSON.parse(JSON.stringify(cvData)); localStorage.setItem(KEY, JSON.stringify(c)); last = c; show(); } catch(e){} }
+    function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){} }
+    function show() { let el = document.getElementById('autoSaveIndicator'); if(!el){ el = Object.assign(document.createElement('div'),{id:'autoSaveIndicator',textContent:'💾 Guardado automático'}); el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#10b981;color:white;padding:8px 16px;border-radius:40px;font-size:0.8rem;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:1000;'; document.body.appendChild(el); } el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',1500); }
+    const saved = load(); if(saved){ Object.assign(cvData, saved); if(!cvData.workExperiences?.length) cvData.workExperiences = [{ ...listConfigs.work.defaultItem }]; if(!cvData.educationList?.length) cvData.educationList = [{ ...listConfigs.edu.defaultItem }]; ['skills','languages','certifications'].forEach(k=>{ if(!cvData[k]) cvData[k]=[]; }); if(cvData.personal.profileSummary===undefined) cvData.personal.profileSummary=''; }
+    setInterval(()=>{ if(JSON.stringify(cvData) !== JSON.stringify(last)) save(); },3000);
+    window.addEventListener('beforeunload', ()=>save());
+    window.forceSave = save;
+})();
+
+// ==================== 6. INDICADOR DE COMPLETITUD ====================
+(function(){
+    const SCORES = { personal:20, profile:5, photo:5, work:25, education:25, references:20 };
+    function calc(){
+        let total=0, max=0, p=cvData.personal;
+        let ps = (p.fullName?.trim()?3:0)+(p.email?.includes('@')?3:0)+(isValidPhone(p.mobilePhone)?3:0)+(p.address?.trim()?1:0)+(p.birthDate?1:0)+(isValidPhone(p.homePhone)?1:0);
+        ps += Math.min([p.facebook,p.instagram,p.github].filter(s=>s?.trim()).length,4);
+        total += Math.min(ps,SCORES.personal); max += SCORES.personal;
+        let pl = p.profileSummary?.trim().length||0; total += pl>20?SCORES.profile : pl?2:0; max += SCORES.profile;
+        total += p.photoDataURL?.startsWith('data:image')?SCORES.photo:0; max += SCORES.photo;
+        let wItems = cvData.workExperiences.filter(w=>w.jobTitle||w.company);
+        let ws = Math.min(wItems.length,3)*5;
+        for(let w of wItems){ let e=0; if(w.startDate&&w.endDate) e+=2; else if(w.startDate||w.endDate) e+=1; if(w.description?.trim().length>20) e+=3; else if(w.description?.trim().length) e+=1; ws += Math.min(e,5); }
+        total += Math.min(ws,SCORES.work); max += SCORES.work;
+        let eItems = cvData.educationList.filter(e=>e.study);
+        let es = Math.min(eItems.length,3)*5;
+        for(let e of eItems){ let e2=0; if(e.periodStart&&e.periodEnd) e2+=2; else if(e.periodStart||e.periodEnd) e2+=1; if(e.description?.trim().length>20) e2+=3; else if(e.description?.trim().length) e2+=1; if(e.institution?.trim()) e2+=1; es += Math.min(e2,5); }
+        total += Math.min(es,SCORES.education); max += SCORES.education;
+        let rItems = cvData.references.filter(r=>r.name);
+        let rs = Math.min(rItems.length,3)*5;
+        for(let r of rItems){ let e=0; if(r.phone?.trim()) e+=2; if(r.relation?.trim()) e+=2; rs += Math.min(e,5); }
+        total += Math.min(rs,SCORES.references); max += SCORES.references;
+        return max?Math.round((total/max)*100):0;
     }
-    window.AutoSave.start(() => cvData);
-}
-window.cvData = cvData;
-
-// ========== VARIABLES DE NAVEGACIÓN ==========
-let currentStep = 0;
-const totalSteps = 5;
-let selectedTemplate = "classic";
-let loadedTemplates = {};
-
-const stepIndicatorDiv = document.getElementById("stepIndicator");
-const stepContentDiv = document.getElementById("stepContent");
-
-// ========== CARGA DE PLANTILLAS ==========
-function loadTemplate(templateId) {
-    return new Promise((resolve, reject) => {
-        if (loadedTemplates[templateId]) return resolve(loadedTemplates[templateId]);
-        const script = document.createElement('script');
-        script.src = `templates/${templateId}.js`;
-        script.onload = () => {
-            if (window.templateExports && window.templateExports.id === templateId) {
-                loadedTemplates[templateId] = window.templateExports.render;
-                resolve(window.templateExports.render);
-            } else reject(new Error(`Plantilla ${templateId} no registrada`));
-        };
-        script.onerror = () => reject(new Error(`No se pudo cargar ${templateId}`));
-        document.head.appendChild(script);
-    });
-}
-
-// ========== INDICADOR ==========
-function updateIndicator() {
-    const steps = ["📝 Datos Personales", "💼 Experiencia Laboral", "🎓 Educación", "📞 Referencias", "🎨 Plantilla & Vista Previa"];
-    stepIndicatorDiv.innerHTML = steps.map((name, idx) => `<div class="step-badge ${idx === currentStep ? 'active' : ''}">${name}</div>`).join('');
-}
-
-function goToStep(step) {
-    if (step === currentStep) return;
-    if (currentStep === 0 && step > 0 && !validatePersonalStep(cvData)) return;
-    if ((currentStep === 1 || currentStep === 2 || currentStep === 3) && step > currentStep && !validateCurrentStepData(currentStep, cvData, listConfigs)) return;
-    if (step >= 0 && step < totalSteps) {
-        currentStep = step;
-        renderCurrentStep();
+    function update(){
+        let el = document.getElementById('completionIndicator');
+        if(!el){ el = document.createElement('div'); el.id='completionIndicator'; const h = document.querySelector('.step-header'); if(h){ el.style.cssText='margin-top:0.75rem;background:rgba(255,255,255,0.15);border-radius:40px;padding:0.3rem 0.8rem;display:inline-block;font-size:0.8rem;'; h.appendChild(el); } else { el.style.cssText='position:fixed;bottom:20px;left:20px;background:#1e293b;color:white;border-radius:40px;padding:0.4rem 1rem;font-size:0.8rem;z-index:1000;'; document.body.appendChild(el); } }
+        const p = calc();
+        const msg = p===100?'🎉 ¡CV completo!':p>=80?'👍 Muy bien, casi listo':p>=50?'📝 Vas por buen camino':p>0?'💪 Completa más datos':'✨ Empieza a llenar tu CV';
+        el.textContent = `📊 Completitud: ${p}% ${msg}`;
+        el.style.backgroundColor = p===100?'#10b981':'rgba(255,255,255,0.15)';
     }
+    window.refreshCompletion = update;
+})();
+
+// ==================== 7. NAVEGACIÓN Y RENDERIZADO PRINCIPAL ====================
+let currentStep = 0, totalSteps = 8, selectedTemplate = 'classic', loadedTemplates = {};
+const stepIndicator = document.getElementById('stepIndicator'), stepContent = document.getElementById('stepContent');
+
+function loadTemplate(id){ return new Promise((res,rej)=>{ if(loadedTemplates[id]) return res(loadedTemplates[id]); const s=document.createElement('script'); s.src=`templates/${id}.js`; s.onload=()=>{ if(window.templateExports?.id===id){ loadedTemplates[id]=window.templateExports.render; res(loadedTemplates[id]); } else rej(new Error()); }; s.onerror=()=>rej(new Error()); document.head.appendChild(s); }); }
+function updateIndicator(){ const steps=['📝 Datos Personales','💼 Experiencia','🎓 Educación','📞 Referencias','🛠️ Habilidades','🌐 Idiomas','📜 Certificaciones','🎨 Plantilla & Vista Previa']; stepIndicator.innerHTML = steps.map((s,i)=>`<div class="step-badge ${i===currentStep?'active':''}">${s}</div>`).join(''); }
+function goToStep(step){ if(step===currentStep) return; if(currentStep===0 && step>0 && !validatePersonalStep()) return; if(currentStep>=1 && currentStep<=6 && step>currentStep && !validateCurrentStepData(currentStep)) return; if(step>=0 && step<totalSteps){ currentStep=step; renderCurrentStep(); } }
+function renderCurrentStep(){ const f = [renderPersonalStep,()=>renderDynamicStep('work','💼 Experiencia','➕ Agregar experiencia',2),()=>renderDynamicStep('edu','🎓 Educación','📘 Agregar estudio',3),()=>renderDynamicStep('ref','📞 Referencias','📇 Agregar referencia',4),()=>renderDynamicStep('skills','🛠️ Habilidades','➕ Agregar habilidad',5),()=>renderDynamicStep('languages','🌐 Idiomas','➕ Agregar idioma',6),()=>renderDynamicStep('certifications','📜 Certificaciones','➕ Agregar certificación',7),renderPreviewAndTemplateStep]; f[currentStep](); updateIndicator(); window.refreshCompletion(); }
+
+// ==================== 8. PASO 0: DATOS PERSONALES ====================
+function renderPersonalStep(){
+    const p = cvData.personal;
+    const fields = ['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].map(f=>`<div class="form-group"><label>${f==='fullName'?'Nombre completo *':f==='birthDate'?'Fecha nacimiento':f==='mobilePhone'?'Teléfono celular *':f==='homePhone'?'Teléfono casa':f==='email'?'Correo electrónico *':f}</label><input type="${f==='birthDate'?'date':f==='email'?'email':'text'}" id="${f}" value="${window.escapeHtml(p[f]||'')}"></div>`).join('');
+    stepContent.innerHTML = `<div style="display:flex;justify-content:space-between;gap:0.8rem;margin-bottom:1.5rem;flex-wrap:wrap;"><button id="resetDataBtn" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button><div style="display:flex;gap:0.5rem;"><button id="exportDataBtn">💾 Exportar</button><label for="importFileInput" style="background:#10b981;color:white;padding:0.6rem 1.2rem;border-radius:40px;cursor:pointer;">📂 Cargar</label><input type="file" id="importFileInput" accept=".json" style="display:none;"></div></div><div class="form-grid">${fields}<div class="form-group" style="grid-column:1/-1;"><label>Resumen profesional / Perfil</label><textarea id="profileSummary" rows="3" placeholder="Breve descripción de tu perfil profesional...">${window.escapeHtml(p.profileSummary||'')}</textarea></div><div class="form-group"><label>📸 Foto</label><input type="file" id="photoUpload" accept="image/jpeg,image/png"><img id="photoPreview" class="photo-preview" src="${p.photoDataURL||`https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(p.fullName||'CV')}`}"></div></div><div class="nav-buttons"><button class="secondary" disabled>◀ Anterior</button><button id="nextStepBtn">Continuar ➤</button></div>`;
+    ['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].forEach(id=>{ document.getElementById(id)?.addEventListener('input',e=>{ cvData.personal[id]=e.target.value; if(!cvData.personal.photoDataURL){ document.getElementById('photoPreview').src=`https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(cvData.personal.fullName||'CV')}`; } window.refreshCompletion(); }); });
+    document.getElementById('profileSummary')?.addEventListener('input',e=>{ cvData.personal.profileSummary=e.target.value; window.refreshCompletion(); });
+    document.getElementById('photoUpload')?.addEventListener('change',e=>{ if(e.target.files[0]){ const r=new FileReader(); r.onload=ev=>{ cvData.personal.photoDataURL=ev.target.result; document.getElementById('photoPreview').src=ev.target.result; window.refreshCompletion(); }; r.readAsDataURL(e.target.files[0]); } });
+    document.getElementById('resetDataBtn')?.addEventListener('click',resetAllData);
+    document.getElementById('exportDataBtn')?.addEventListener('click',exportData);
+    document.getElementById('importFileInput')?.addEventListener('change',importData);
+    document.getElementById('nextStepBtn')?.addEventListener('click',()=>{ if(validatePersonalStep()) goToStep(1); });
 }
 
-function renderCurrentStep() {
-    if (currentStep === 0) renderPersonalStep();
-    else if (currentStep === 1) renderDynamicListStep("work", "Experiencia Laboral", "➕ Agregar experiencia", 2);
-    else if (currentStep === 2) renderDynamicListStep("edu", "Educación", "📘 Agregar estudio", 3);
-    else if (currentStep === 3) renderDynamicListStep("ref", "Referencias", "📇 Agregar referencia", 4);
-    else if (currentStep === 4) renderPreviewAndTemplateStep();
-    updateIndicator();
-}
-
-// ========== LISTAS DINÁMICAS ==========
-function renderDynamicListStep(listKey, title, addButtonText, nextStep) {
-    const cfg = listConfigs[listKey];
-    const html = `<div id="${listKey}Container"></div><button id="add${listKey}Btn" class="add-button">${addButtonText}</button><div class="nav-buttons"><button id="prevStep${currentStep-1}" class="secondary">◀ Anterior</button><button id="nextStep${nextStep}">Continuar ➤</button></div>`;
-    stepContentDiv.innerHTML = html;
-    const container = document.getElementById(`${listKey}Container`);
-    const render = () => renderDynamicItems(container, listKey);
+// ==================== 9. RENDERIZADO DE LISTAS DINÁMICAS (GENERAL) ====================
+function renderDynamicStep(key, title, addBtnText, nextStep){
+    const cfg = listConfigs[key];
+    stepContent.innerHTML = `<h2 style="margin-bottom:1rem;">${title}</h2><div id="${key}Container"></div><button id="add${key}Btn" class="add-button">${addBtnText}</button><div class="nav-buttons"><button id="prevBtn" class="secondary">◀ Anterior</button><button id="nextBtn">Continuar ➤</button></div>`;
+    const container = document.getElementById(`${key}Container`);
+    const render = ()=>renderDynamicItems(container, key);
     render();
-    document.getElementById(`add${listKey}Btn`).onclick = () => { cfg.array().push({ ...cfg.defaultItem }); render(); };
-    document.getElementById(`prevStep${currentStep-1}`).onclick = () => goToStep(currentStep-1);
-    document.getElementById(`nextStep${nextStep}`).onclick = () => goToStep(nextStep);
+    document.getElementById(`add${key}Btn`).onclick = ()=>{ cfg.array().push(key==='skills'?'':{...cfg.defaultItem}); render(); window.refreshCompletion(); };
+    document.getElementById('prevBtn').onclick = ()=>goToStep(currentStep-1);
+    document.getElementById('nextBtn').onclick = ()=>goToStep(nextStep);
 }
-
-function renderDynamicItems(container, listKey) {
-    const cfg = listConfigs[listKey];
-    const array = cfg.array();
+function renderDynamicItems(container, key){
+    const cfg = listConfigs[key], arr = cfg.array();
     container.innerHTML = '';
-    array.forEach((item, idx) => {
-        const card = document.createElement('div');
-        card.className = 'card-item';
-        let fieldsHtml = `<div class="form-grid" style="grid-template-columns: ${cfg.gridCols};">`;
-        for (let f of cfg.fields) {
-            const value = item[f.name] ?? '';
-            if (f.type === 'select') {
-                const options = f.options.map(opt => `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`).join('');
-                fieldsHtml += `<div><label>${f.label}</label><select data-field="${f.name}" data-idx="${idx}">${options}</select></div>`;
-            } else if (f.type === 'textarea') {
-                fieldsHtml += `<div style="grid-column:1/-1;"><label>${f.label}</label><textarea data-field="${f.name}" data-idx="${idx}" rows="2" placeholder="${f.placeholder || ''}" maxlength="${f.maxLength || 500}">${window.escapeHtml(value)}</textarea><small style="display:block; text-align:right; font-size:0.7rem;">${value.length}/${f.maxLength || 500}</small></div>`;
-            } else {
-                fieldsHtml += `<div><label>${f.label}</label><input type="${f.type}" data-field="${f.name}" data-idx="${idx}" value="${window.escapeHtml(value)}" placeholder="${f.placeholder || ''}" ${f.maxLength ? `maxlength="${f.maxLength}"` : ''}></div>`;
+    arr.forEach((item,idx)=>{
+        const card = document.createElement('div'); card.className = 'card-item';
+        let fieldsHtml = `<div class="form-grid" style="grid-template-columns:${cfg.gridCols};">`;
+        if(key==='skills'){
+            fieldsHtml += `<div style="grid-column:1/-1;"><label>Habilidad</label><input type="text" data-field="value" data-idx="${idx}" value="${window.escapeHtml(item)}" placeholder="Ej: Liderazgo, Python"></div>`;
+        } else {
+            for(const f of cfg.fields){
+                const val = item[f.name]??'';
+                if(f.type==='select'){
+                    const opts = f.options.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('');
+                    fieldsHtml += `<div><label>${f.label}</label><select data-field="${f.name}" data-idx="${idx}">${opts}</select></div>`;
+                } else if(f.type==='textarea'){
+                    fieldsHtml += `<div style="grid-column:1/-1;"><label>${f.label}</label><textarea data-field="${f.name}" data-idx="${idx}" rows="2" placeholder="${f.placeholder||''}">${window.escapeHtml(val)}</textarea></div>`;
+                } else {
+                    fieldsHtml += `<div><label>${f.label}</label><input type="text" data-field="${f.name}" data-idx="${idx}" value="${window.escapeHtml(val)}" placeholder="${f.placeholder||''}"></div>`;
+                }
             }
         }
-        fieldsHtml += `</div>`;
+        fieldsHtml += '</div>';
         card.innerHTML = `<button class="remove-btn danger" data-idx="${idx}">🗑</button>${fieldsHtml}`;
         container.appendChild(card);
     });
-    container.querySelectorAll('input, select, textarea').forEach(el => {
-        el.addEventListener('input', (e) => {
-            const idx = parseInt(e.target.dataset.idx);
-            const field = e.target.dataset.field;
-            if (!isNaN(idx) && field) {
-                array[idx][field] = e.target.value;
-                if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) e.target.style.borderColor = 'red';
-                else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) e.target.style.borderColor = 'red';
-                else e.target.style.borderColor = '';
-            }
-        });
-        el.addEventListener('change', (e) => {
-            const idx = parseInt(e.target.dataset.idx);
-            const field = e.target.dataset.field;
-            if (field === 'phone' && e.target.value && !isValidPhone(e.target.value)) alert('Teléfono no válido');
-            else if ((field === 'startDate' || field === 'endDate' || field === 'periodStart' || field === 'periodEnd') && e.target.value && !isValidYearPeriod(e.target.value)) alert('Formato de fecha no válido');
+    container.querySelectorAll('input, select, textarea').forEach(el=>{
+        el.addEventListener('input',e=>{
+            const i = parseInt(e.target.dataset.idx), f = e.target.dataset.field;
+            if(isNaN(i)) return;
+            if(key==='skills') arr[i] = e.target.value;
+            else if(f) arr[i][f] = e.target.value;
+            if(f==='phone' && e.target.value && !isValidPhone(e.target.value)) e.target.style.borderColor='red';
+            else if(['startDate','endDate','periodStart','periodEnd'].includes(f) && e.target.value && !isValidYearPeriod(e.target.value)) e.target.style.borderColor='red';
+            else e.target.style.borderColor='';
+            window.refreshCompletion();
         });
     });
-    container.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const idx = parseInt(btn.dataset.idx);
-            if (array.length > cfg.minItems) array.splice(idx, 1);
-            else if (cfg.emptyMessage) alert(cfg.emptyMessage);
-            renderDynamicItems(container, listKey);
+    container.querySelectorAll('.remove-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            const i = parseInt(btn.dataset.idx);
+            if(arr.length > cfg.minItems) arr.splice(i,1);
+            else if(cfg.emptyMsg) alert(cfg.emptyMsg);
+            renderDynamicItems(container, key);
+            window.refreshCompletion();
         });
     });
 }
 
-// ========== PASO 0: DATOS PERSONALES ==========
-function renderPersonalStep() {
-    const p = cvData.personal;
-    const html = `
-        <div style="display: flex; justify-content: space-between; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-            <button id="resetDataBtnPersonal" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button>
-            <div style="display: flex; gap: 0.5rem;">
-                <button id="exportDataBtnPersonal" class="outline">💾 Exportar</button>
-                <label for="importFileInputPersonal" class="outline" style="background:#10b981; color:white; padding:0.6rem 1.2rem; border-radius:40px; cursor:pointer;">📂 Cargar</label>
-                <input type="file" id="importFileInputPersonal" accept=".json" style="display: none;">
-            </div>
-        </div>
-        <div class="form-grid">
-            ${['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].map(f => {
-                let label = f === 'fullName' ? 'Nombre completo *' : f === 'birthDate' ? 'Fecha nacimiento' : f === 'mobilePhone' ? 'Teléfono celular *' : f === 'homePhone' ? 'Teléfono casa' : f === 'email' ? 'Correo electrónico *' : f;
-                let type = f === 'birthDate' ? 'date' : (f === 'email' ? 'email' : 'text');
-                return `<div class="form-group"><label>${label}</label><input type="${type}" id="${f}" value="${window.escapeHtml(p[f])}" ${f === 'mobilePhone' ? 'required' : ''}></div>`;
-            }).join('')}
-            <div class="form-group" style="grid-column:1/-1;"><label>Resumen profesional / Perfil</label><textarea id="profileSummary" rows="3" maxlength="500" placeholder="Breve descripción de tu perfil profesional...">${window.escapeHtml(p.profileSummary)}</textarea></div>
-            <div class="form-group photo-area"><label>📸 Foto</label><input type="file" id="photoUpload" accept="image/jpeg,image/png"><div><img id="photoPreview" class="photo-preview" src="${p.photoDataURL || 'https://ui-avatars.com/api/?background=3b82f6&color=fff&name=' + encodeURIComponent(p.fullName || 'CV')}"></div></div>
-        </div>
-        <div class="nav-buttons"><button class="secondary" disabled>◀ Anterior</button><button id="nextStepBtn">Continuar ➤</button></div>
-    `;
-    stepContentDiv.innerHTML = html;
-    document.getElementById('resetDataBtnPersonal')?.addEventListener('click', resetAllData);
-    document.getElementById('exportDataBtnPersonal')?.addEventListener('click', exportData);
-    document.getElementById('importFileInputPersonal')?.addEventListener('change', importData);
-    ['fullName','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].forEach(f => {
-        const el = document.getElementById(f);
-        if (el) el.addEventListener('input', (e) => { cvData.personal[f] = e.target.value; updatePhotoPreview(); });
-    });
-    document.getElementById('profileSummary')?.addEventListener('input', (e) => { cvData.personal.profileSummary = e.target.value; });
-    document.getElementById('photoUpload')?.addEventListener('change', e => {
-        if(e.target.files[0]) {
-            const reader = new FileReader();
-            reader.onload = ev => { cvData.personal.photoDataURL = ev.target.result; document.getElementById('photoPreview').src = ev.target.result; };
-            reader.readAsDataURL(e.target.files[0]);
-        }
-    });
-    function updatePhotoPreview() {
-        const preview = document.getElementById('photoPreview');
-        if(preview && !cvData.personal.photoDataURL) preview.src = `https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(cvData.personal.fullName || 'CV')}`;
-    }
-    document.getElementById('nextStepBtn')?.addEventListener('click', () => { if(validatePersonalStep(cvData)) goToStep(1); });
-}
+// ==================== 10. EXPORTAR / IMPORTAR / RESET ====================
+function exportData(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(JSON.parse(JSON.stringify(cvData)),null,2)],{type:'application/json'})); a.download=`${cvData.personal.fullName?.replace(/\s/g,'_')||'cv_data'}.json`; a.click(); alert('✅ Datos exportados.'); window.forceSave(); }
+function importData(e){ const file=e.target.files[0]; if(!file) return; const r=new FileReader(); r.onload=ev=>{ try{ const imp=JSON.parse(ev.target.result); if(imp.personal && imp.workExperiences && imp.educationList && imp.references){ Object.assign(cvData,imp); if(!cvData.workExperiences.length) cvData.workExperiences=[{...listConfigs.work.defaultItem}]; if(!cvData.educationList.length) cvData.educationList=[{...listConfigs.edu.defaultItem}]; ['skills','languages','certifications'].forEach(k=>{ if(!cvData[k]) cvData[k]=[]; }); if(cvData.personal.profileSummary===undefined) cvData.personal.profileSummary=''; currentStep=0; renderCurrentStep(); alert('✅ Datos importados.'); window.forceSave(); window.refreshCompletion(); } else alert('❌ Formato incorrecto.'); } catch{ alert('❌ Error al leer archivo.'); } e.target.value=''; }; r.readAsText(file); }
+function resetAllData(){ if(confirm('⚠️ ¿Borrar todos los datos? No se puede deshacer.')){ cvData.personal={ fullName:'', birthDate:'', address:'', mobilePhone:'', homePhone:'', email:'', facebook:'', instagram:'', github:'', photoDataURL:'', profileSummary:'' }; cvData.workExperiences=[{...listConfigs.work.defaultItem}]; cvData.educationList=[{...listConfigs.edu.defaultItem}]; cvData.references=[]; cvData.skills=[]; cvData.languages=[]; cvData.certifications=[]; currentStep=0; renderCurrentStep(); alert('✅ Datos eliminados.'); window.forceSave(); window.refreshCompletion(); } }
 
-// ========== EXPORTAR, IMPORTAR, RESET ==========
-function exportData() {
-    const dataToExport = JSON.parse(JSON.stringify(cvData));
-    const jsonStr = JSON.stringify(dataToExport, null, 2);
-    const blob = new Blob([jsonStr], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${cvData.personal.fullName?.replace(/\s/g, '_') || 'cv_data'}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    alert("✅ Datos exportados.");
-    if (window.AutoSave) window.AutoSave.forceSave(cvData);
-}
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const imported = JSON.parse(e.target.result);
-            if (imported.personal && imported.workExperiences && imported.educationList && imported.references) {
-                cvData = imported;
-                if (!cvData.workExperiences.length) cvData.workExperiences.push({ ...listConfigs.work.defaultItem });
-                if (!cvData.educationList.length) cvData.educationList.push({ ...listConfigs.edu.defaultItem });
-                if (cvData.personal.profileSummary === undefined) cvData.personal.profileSummary = "";
-                currentStep = 0;
-                renderCurrentStep();
-                alert("✅ Datos importados.");
-                if (window.AutoSave) window.AutoSave.forceSave(cvData);
-            } else alert("❌ Formato incorrecto.");
-        } catch (err) { alert("❌ Error al leer archivo."); }
-        event.target.value = '';
-    };
-    reader.readAsText(file);
-}
-function resetAllData() {
-    if (confirm("⚠️ ¿Borrar todos los datos? No se puede deshacer.")) {
-        cvData = {
-            personal: { fullName: "", birthDate: "", address: "", mobilePhone: "", homePhone: "", email: "", facebook: "", instagram: "", github: "", photoDataURL: "", profileSummary: "" },
-            workExperiences: [],
-            educationList: [],
-            references: []
-        };
-        cvData.workExperiences.push({ ...listConfigs.work.defaultItem });
-        cvData.educationList.push({ ...listConfigs.edu.defaultItem });
-        currentStep = 0;
-        renderCurrentStep();
-        alert("✅ Todos los datos eliminados.");
-        if (window.AutoSave) window.AutoSave.forceSave(cvData);
-    }
-}
-
-// ========== PASO FINAL: PLANTILLAS Y PREVIEW ==========
-function renderPreviewAndTemplateStep() {
+// ==================== 11. VISTA PREVIA Y SELECCIÓN DE PLANTILLA ====================
+async function renderPreviewAndTemplateStep(){
     const templates = window.cvTemplatesList || [];
-    if (!templates.length) { stepContentDiv.innerHTML = '<div>Error: No se encontraron plantillas.</div>'; return; }
-    const selector = templates.map(t => `<div data-template="${t.id}" class="template-option ${selectedTemplate === t.id ? 'selected' : ''}">${t.icono} ${t.nombre}</div>`).join('');
-    const html = `
-        <div style="display: flex; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; margin-bottom:1rem;">
-            <button id="resetDataBtnFinal" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button>
-            <div style="display:flex; gap:0.5rem;">
-                <button id="exportDataBtnFinal" class="outline">💾 Exportar</button>
-                <label for="importFileInputFinal" style="background:#10b981; color:white; padding:0.6rem 1.2rem; border-radius:40px; cursor:pointer;">📂 Cargar</label>
-                <input type="file" id="importFileInputFinal" accept=".json" style="display:none;">
-            </div>
-        </div>
-        <div class="template-selector">${selector}</div>
-        <div id="livePreview" class="cv-preview"></div>
-        <div class="nav-buttons"><button id="prevStep3" class="secondary">◀ Editar</button><button id="printBtn">🖨️ Imprimir</button></div>
-    `;
-    stepContentDiv.innerHTML = html;
-    document.getElementById('resetDataBtnFinal')?.addEventListener('click', resetAllData);
-    document.getElementById('exportDataBtnFinal')?.addEventListener('click', exportData);
-    document.getElementById('importFileInputFinal')?.addEventListener('change', importData);
-    document.querySelectorAll('.template-option').forEach(opt => opt.addEventListener('click', async (e) => {
-        selectedTemplate = e.currentTarget.dataset.template;
-        try { await loadTemplate(selectedTemplate); renderPreviewAndTemplateStep(); } catch(err) { alert('Error cargando plantilla'); }
-    }));
-    updatePreview();
-    document.getElementById('prevStep3')?.addEventListener('click', () => goToStep(3));
-    document.getElementById('printBtn')?.addEventListener('click', printCV);
+    if(!templates.length){ stepContent.innerHTML='<div>Error: No se encontraron plantillas.</div>'; return; }
+    stepContent.innerHTML = `<div style="display:flex;justify-content:space-between;gap:0.8rem;flex-wrap:wrap;margin-bottom:1rem;"><button id="resetBtn2" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button><div style="display:flex;gap:0.5rem;"><button id="exportBtn2">💾 Exportar</button><label for="importFile2" style="background:#10b981;color:white;padding:0.6rem 1.2rem;border-radius:40px;cursor:pointer;">📂 Cargar</label><input type="file" id="importFile2" accept=".json" style="display:none;"></div></div><div class="template-selector">${templates.map(t=>`<div data-template="${t.id}" class="template-option ${selectedTemplate===t.id?'selected':''}">${t.icono} ${t.nombre}</div>`).join('')}</div><div id="livePreview" class="cv-preview"></div><div class="nav-buttons" style="margin-top:1.5rem;"><button id="prevStepBtn" class="secondary">◀ Editar</button><button id="printBtn">🖨️ Imprimir / Guardar PDF</button></div>`;
+    document.getElementById('resetBtn2')?.addEventListener('click',resetAllData);
+    document.getElementById('exportBtn2')?.addEventListener('click',exportData);
+    document.getElementById('importFile2')?.addEventListener('change',importData);
+    document.querySelectorAll('.template-option').forEach(opt=>opt.addEventListener('click',async e=>{ selectedTemplate=e.currentTarget.dataset.template; await loadTemplate(selectedTemplate); renderPreviewAndTemplateStep(); }));
+    await updatePreview();
+    document.getElementById('prevStepBtn')?.addEventListener('click',()=>goToStep(6));
+    document.getElementById('printBtn')?.addEventListener('click',printCV);
 }
-async function updatePreview() {
-    const preview = document.getElementById('livePreview');
-    if (!preview || !selectedTemplate) return;
-    try {
-        const renderFn = await loadTemplate(selectedTemplate);
-        preview.innerHTML = renderFn(cvData);
-    } catch { preview.innerHTML = '<p>Error cargando plantilla.</p>'; }
-}
-async function printCV() {
-    try {
-        const renderFn = await loadTemplate(selectedTemplate);
-        const cvHTML = renderFn(cvData);
-        const styles = `@page{margin:1.2cm 0.8cm;size:A4}body{margin:0;padding:0;background:white}.cv-container{max-width:100%}.cv-section{break-inside:avoid}h1,h2,h3{break-after:avoid}img{max-width:100%;height:auto}`;
-        const doc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CV ${window.escapeHtml(cvData.personal.fullName||'')}</title><style>${styles}</style></head><body><div class="cv-container">${cvHTML}</div><script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);};<\/script></body></html>`;
-        const w = window.open('', '_blank', 'width=900,height=700');
-        if (w) { w.document.write(doc); w.document.close(); } else alert("Permite ventanas emergentes.");
-    } catch { alert('Error al imprimir'); }
+async function updatePreview(){ const preview=document.getElementById('livePreview'); if(preview){ try{ const render=await loadTemplate(selectedTemplate); preview.innerHTML=render(cvData); } catch{ preview.innerHTML='<p style="color:red;">Error cargando plantilla.</p>'; } } }
+
+// ==================== 12. IMPRIMIR (VENTANA LIMPIA) ====================
+async function printCV(){
+    try{
+        const render = await loadTemplate(selectedTemplate);
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CV ${window.escapeHtml(cvData.personal.fullName||'')}</title><style>@page{margin:1.2cm 0.8cm;size:A4;}body{margin:0;padding:0;background:white;font-family:'Segoe UI',Roboto,sans-serif;}.cv-section{break-inside:avoid;}img{max-width:100%;height:auto;}h1,h2,h3{break-after:avoid;}</style></head><body>${render(cvData)}<script>window.onload=function(){window.print();setTimeout(()=>window.close(),2000);};<\/script></body></html>`;
+        const w = window.open('','_blank','width=900,height=700');
+        if(w){ w.document.write(html); w.document.close(); }
+        else alert('⚠️ Permite ventanas emergentes para imprimir.');
+    } catch(e){ alert('Error al preparar la impresión.'); }
 }
 
-// Iniciar
+// ==================== 13. INICIO ====================
 renderCurrentStep();

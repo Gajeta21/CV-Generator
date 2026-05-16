@@ -1,35 +1,44 @@
-// Plantilla Ejecutiva (dos columnas, fondo oscuro)
 window.templateExports = {
     id: "executive",
     render: (data) => {
-        const { personal, workExperiences, educationList, references } = data;
-        const photoUrl = personal.photoDataURL || `https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(personal.fullName || 'CV')}`;
-        const formattedBirth = formatDate(personal.birthDate);
+        const { personal, workExperiences, educationList, references, skills, languages, certifications } = data;
+        const photoUrl = personal.photoDataURL || `https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(personal.fullName||'CV')}`;
+        const formattedBirth = window.formatDate(personal.birthDate);
         const profile = personal.profileSummary || "";
-        const socialHtml = renderSocialLinks("executive", personal);
-        const workHtml = renderWorkExperiences(workExperiences);
-        const eduHtml = renderEducation(educationList);
-        const refHtml = renderReferences("executive", references);
-        
-        return `<div class="template-executive" style="font-family:'Times New Roman', serif; max-width:1000px; margin:0 auto; background:white; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+        const socialHtml = window.renderSocialLinks("executive", personal);
+        const workHtml = window.renderWorkExperiences(workExperiences);
+        const eduHtml = window.renderEducation(educationList);
+        const skillsHtml = window.renderSkills(skills);
+        const languagesHtml = window.renderLanguages(languages);
+        const certsHtml = window.renderCertifications(certifications);
+        const refHtml = window.renderReferences("executive", references);
+
+        return `
+        <div class="template-executive" style="font-family:'Times New Roman', serif; max-width:1050px; margin:0 auto; background:white;">
             <div style="display:flex; flex-wrap:wrap;">
-                <div class="cv-section" style="flex:1; background:#102a43; color:white; padding:1.5rem;">
-                    <img src="${photoUrl}" style="width:100%; max-width:150px; border-radius:50%; margin-bottom:1rem; border:3px solid #e2e8f0;">
-                    <h2>Contacto</h2>
-                    <p><strong>📞</strong> ${escapeHtml(personal.mobilePhone)}<br>
-                    <strong>🏠</strong> ${escapeHtml(personal.homePhone)}<br>
-                    <strong>✉️</strong> ${escapeHtml(personal.email)}<br>
-                    <strong>📍</strong> ${escapeHtml(personal.address)}</p>
-                    <h2>Perfil</h2>
-                    <p>${escapeHtml(profile) || "Profesional con amplia experiencia en el sector, orientado a resultados y liderazgo."}</p>
+                <!-- Columna izquierda (oscura) -->
+                <div style="flex:1; background:#102a43; color:white; padding:2rem;">
+                    <img src="${photoUrl}" style="width:150px; height:150px; border-radius:50%; object-fit:cover; margin-bottom:1rem; border:4px solid #e2e8f0;">
+                    <h2 style="border-bottom:2px solid #e2e8f0;">Contacto</h2>
+                    <!-- CADA DATO EN SU PROPIA LÍNEA PARA EVITAR DESPLAZAMIENTOS -->
+                    <p><strong>📞</strong> ${window.escapeHtml(personal.mobilePhone)}</p>
+                    ${personal.homePhone ? `<p><strong>🏠</strong> ${window.escapeHtml(personal.homePhone)}</p>` : ''}
+                    <p><strong>✉️</strong> ${window.escapeHtml(personal.email)}</p>
+                    <p><strong>📍</strong> ${window.escapeHtml(personal.address)}</p>
+                    <h2 style="margin-top:1.5rem;">Perfil</h2>
+                    <p>${window.escapeHtml(profile) || "Profesional con amplia experiencia."}</p>
                     ${socialHtml}
                 </div>
-                <div style="flex:2; padding:1.5rem;">
-                    <div class="cv-section"><h1 style="color:#102a43; margin-top:0;">${escapeHtml(personal.fullName)}</h1>
-                    <p><strong>Fecha de nacimiento:</strong> ${formattedBirth || 'No especificada'}</p></div>
-                    <div class="cv-section"><h2>Experiencia profesional</h2>${workHtml}</div>
-                    <div class="cv-section"><h2>Formación académica</h2>${eduHtml}</div>
-                    <div class="cv-section"><h2>Referencias</h2>${refHtml}</div>
+                <!-- Columna derecha -->
+                <div style="flex:2; padding:2rem;">
+                    <h1>${window.escapeHtml(personal.fullName)}</h1>
+                    <p><strong>📅 Fecha de nacimiento:</strong> ${formattedBirth || 'No especificada'}</p>
+                    <div><h2>💼 Experiencia profesional</h2>${workHtml}</div>
+                    <div><h2>🎓 Formación académica</h2>${eduHtml}</div>
+                    <div><h2>🛠️ Habilidades</h2>${skillsHtml}</div>
+                    <div><h2>🌐 Idiomas</h2>${languagesHtml}</div>
+                    <div><h2>📜 Certificaciones</h2>${certsHtml}</div>
+                    <div><h2>📞 Referencias</h2>${refHtml}</div>
                 </div>
             </div>
         </div>`;

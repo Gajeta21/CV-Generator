@@ -4,21 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de CV</title>
+
+    <!-- Estilos de la aplicación -->
     <link rel="stylesheet" href="styles.css">
+
+    <!--
+        html2pdf.js — biblioteca para exportar HTML a PDF.
+        Incluye html2canvas (captura del DOM) + jsPDF (generación del archivo).
+        Se carga desde CDN para no necesitar instalación.
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
+
+    <!-- Contenedor principal de la aplicación -->
     <div class="app-container" id="app">
+
+        <!-- Encabezado fijo con título y badges de pasos -->
         <div class="step-header">
             <div class="step-title">📄 Generador Inteligente de CV</div>
+            <!-- Los badges se generan dinámicamente desde script.js (updateIndicator) -->
             <div class="step-indicator" id="stepIndicator"></div>
         </div>
+
+        <!-- Zona de contenido: cada paso inyecta su HTML aquí -->
         <div class="step-content" id="stepContent"></div>
+
     </div>
 
-    <!-- PRIMERO cargar config y módulos (sin que dependan de nada) -->
+    <!--
+        Configuración de plantillas disponibles.
+        Este script define window.cvTemplatesList con el listado
+        de plantillas (id, nombre, icono) que el usuario puede elegir.
+        Debe cargarse ANTES que script.js.
+    -->
     <script src="templates/config.js"></script>
-    <script src="modules/autoSave.js"></script>
-    <!-- LUEGO el script principal, que espera que AutoSave exista -->
+
+    <!-- Lógica principal de la aplicación -->
     <script src="script.js"></script>
+
 </body>
 </html>
