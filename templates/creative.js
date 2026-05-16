@@ -2,7 +2,7 @@ window.templateExports = {
     id: "creative",
     render: (data) => {
         const { personal, workExperiences, educationList, references, skills, languages, certifications } = data;
-        const photoUrl = personal.photoDataURL || `https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(personal.fullName||'CV')}`;
+        const photoUrl = personal.photoDataURL || `https://ui-avatars.com/api/?background=2c5530&color=fff&name=${encodeURIComponent(personal.fullName||'CV')}`;
         const formattedBirth = window.formatDate(personal.birthDate);
         const profile = personal.profileSummary || "";
         const socialHtml = window.renderSocialLinks("creative", personal);
@@ -14,34 +14,27 @@ window.templateExports = {
         const refHtml = window.renderReferences("creative", references);
 
         return `
-        <div class="template-creative" style="font-family:'Trebuchet MS', sans-serif; max-width:950px; margin:0 auto; background:#fdfcf8;">
-            <div style="display:flex; flex-wrap:wrap; gap:2rem; padding:2rem;">
-                <!-- Columna izquierda (contacto) -->
-                <div style="flex:1; text-align:center;">
-                    <img src="${photoUrl}" style="width:150px; height:150px; border-radius:50%; border:4px solid #d4af37; margin-bottom:1rem;">
-                    <div style="border-top:2px solid #d4af37; padding-top:1rem;">
-                        <h3>Contacto</h3>
-                        <!-- CADA DATO EN SU PROPIA LÍNEA PARA EVITAR DESPLAZAMIENTOS -->
-                        <p><strong>📞</strong> ${window.escapeHtml(personal.mobilePhone)}</p>
-                        ${personal.homePhone ? `<p><strong>🏠</strong> ${window.escapeHtml(personal.homePhone)}</p>` : ''}
-                        <p><strong>✉️</strong> ${window.escapeHtml(personal.email)}</p>
-                        <p><strong>📍</strong> ${window.escapeHtml(personal.address)}</p>
-                        ${socialHtml}
-                        <h3>Nacimiento</h3>
-                        <p>${formattedBirth || 'No especificada'}</p>
-                    </div>
-                </div>
-                <!-- Columna derecha (contenido principal) -->
-                <div style="flex:2;">
-                    <h1 style="color:#2c5530;">${window.escapeHtml(personal.fullName)}</h1>
-                    ${profile ? `<div><h3>Declaración personal</h3><p>${window.escapeHtml(profile)}</p></div>` : ''}
-                    <div><h3>Experiencia profesional</h3>${workHtml}</div>
-                    <div><h3>Formación</h3>${eduHtml}</div>
-                    <div><h3>Habilidades</h3>${skillsHtml}</div>
-                    <div><h3>Idiomas</h3>${languagesHtml}</div>
-                    <div><h3>Certificaciones</h3>${certsHtml}</div>
-                    <div><h3>Referencias</h3>${refHtml}</div>
-                </div>
+        <div class="template-creative" style="font-family:'Trebuchet MS', sans-serif; max-width:950px; margin:0 auto; background:white; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.05); overflow:hidden;">
+            <!-- Cabecera con foto y datos personales -->
+            <div style="background:linear-gradient(135deg, #2c5530, #1e3a2a); color:white; padding:2rem; text-align:center;">
+                <img src="${photoUrl}" style="width:140px; height:140px; border-radius:50%; object-fit:cover; border:4px solid #d4af37; margin-bottom:1rem;">
+                <h1 style="margin:0.5rem 0 0.2rem;">${window.escapeHtml(personal.fullName)}</h1>
+                <p style="margin:0; font-size:1rem;">
+                    📅 ${formattedBirth || 'No especificada'} &nbsp;|&nbsp; 📍 ${window.escapeHtml(personal.address)} &nbsp;|&nbsp;
+                    📞 ${window.escapeHtml(personal.mobilePhone)} ${personal.homePhone ? `&nbsp;|&nbsp; 🏠 ${window.escapeHtml(personal.homePhone)}` : ''}<br>
+                    ✉️ ${window.escapeHtml(personal.email)}
+                </p>
+                ${socialHtml.replace('🌐 Redes:', '')}
+            </div>
+
+            <div style="padding:2rem;">
+                ${profile ? `<div style="margin-bottom:1.5rem;"><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">Declaración personal</h3><p>${window.escapeHtml(profile)}</p></div>` : ''}
+                <div style="margin-bottom:1.5rem;"><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">💼 Experiencia profesional</h3>${workHtml}</div>
+                <div style="margin-bottom:1.5rem;"><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">🎓 Formación</h3>${eduHtml}</div>
+                <div style="margin-bottom:1.5rem;"><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">🛠️ Habilidades</h3>${skillsHtml}</div>
+                <div style="margin-bottom:1.5rem;"><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">🌐 Idiomas</h3>${languagesHtml}</div>
+                <div style="margin-bottom:1.5rem;"><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">📜 Certificaciones</h3>${certsHtml}</div>
+                <div><h3 style="color:#2c5530; border-left:4px solid #d4af37; padding-left:0.8rem;">📞 Referencias</h3>${refHtml}</div>
             </div>
         </div>`;
     }
