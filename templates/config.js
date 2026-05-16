@@ -5,5 +5,7 @@ window.cvTemplatesList = [
     { id: "minimal", nombre: "Minimalista", icono: "⚪" },
     { id: "executive", nombre: "Ejecutivo", icono: "💼" },
     { id: "creative", nombre: "Creativo", icono: "🎨" },
-    { id: "academic", nombre: "Académico", icono: "📚" }
+    { id: "academic", nombre: "Académico", icono: "📚" },
+    { id: "ats", nombre: "ATS Optimizado", icono: "🤖" },
+    { id: "double", nombre: "Doble Columna", icono: "📄" } 
 ];
