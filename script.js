@@ -2,7 +2,6 @@
 window.escapeHtml = s => !s ? '' : s.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
 window.formatDate = d => d ? (d.split('-').reverse().join('/')) : '';
 
-// Renderiza el bloque de nombre y puesto deseado
 window.renderNameAndTitle = (personal, template) => {
     const name = window.escapeHtml(personal.fullName);
     const jobTitle = personal.jobTitle ? `<div style="font-size:1.1rem; color:#4a5568; margin-top:0.25rem;">${window.escapeHtml(personal.jobTitle)}</div>` : '';
@@ -14,18 +13,32 @@ window.renderNameAndTitle = (personal, template) => {
 };
 
 window.renderSocialLinks = (tpl, p) => {
-    const items = [p.facebook && `👍 Facebook: ${window.escapeHtml(p.facebook)}`, p.instagram && `📷 Instagram: ${window.escapeHtml(p.instagram)}`, p.github && `🐙 GitHub: ${window.escapeHtml(p.github)}`].filter(Boolean);
+    const items = [p.facebook && `Facebook: ${window.escapeHtml(p.facebook)}`, p.instagram && `Instagram: ${window.escapeHtml(p.instagram)}`, p.github && `GitHub: ${window.escapeHtml(p.github)}`].filter(Boolean);
     return items.length ? `<div>${tpl === 'minimal' ? 'Redes sociales: ' : ''}${items.join(' | ')}</div>` : '';
 };
-window.renderWorkExperiences = arr => arr.filter(w => w.jobTitle || w.company).map(w => `<div><strong>${window.escapeHtml(w.jobTitle)}</strong> en ${window.escapeHtml(w.company)} (${window.escapeHtml(w.startDate)} - ${window.escapeHtml(w.endDate)})<br><span>${window.escapeHtml(w.description)}</span></div><br>`).join('') || '<p>Sin experiencia registrada</p>';
-window.renderEducation = arr => arr.filter(e => e.study).map(e => `<div><strong>${window.escapeHtml(e.study)}</strong> - ${window.escapeHtml(e.institution)} (${window.escapeHtml(e.periodStart)}/${window.escapeHtml(e.periodEnd)}) - ${window.escapeHtml(e.status)} | Duración: ${window.escapeHtml(e.duration)}<br><span>${window.escapeHtml(e.description)}</span></div><br>`).join('') || '<p>Sin estudios registrados</p>';
-window.renderSkills = s => s?.length ? `<ul>${s.map(v => `<li>${window.escapeHtml(v)}</li>`).join('')}</ul>` : '<p>No se han añadido habilidades.</p>';
-window.renderLanguages = l => l?.length ? `<ul>${l.map(l => `<li><strong>${window.escapeHtml(l.name)}</strong> (${window.escapeHtml(l.level)})</li>`).join('')}</ul>` : '<p>No se han añadido idiomas.</p>';
-window.renderCertifications = c => c?.length ? `<ul>${c.map(c => `<li><strong>${window.escapeHtml(c.name)}</strong> - ${window.escapeHtml(c.institution)} (${window.escapeHtml(c.date)})${c.url ? ` - <a href="${window.escapeHtml(c.url)}" target="_blank">Ver credencial</a>` : ''}</li>`).join('')}</ul>` : '<p>No se han añadido certificaciones.</p>';
-window.renderReferences = (tpl, refs) => refs.filter(r => r.name).map(r => tpl === 'minimal' ? `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | Teléfono: ${window.escapeHtml(r.phone)}</div>` : `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | 📞 ${window.escapeHtml(r.phone)}</div>`).join('') || '<p>No hay referencias</p>';
-window.renderAchievements = arr => arr?.length ? `<ul>${arr.map(a => `<li>${window.escapeHtml(a)}</li>`).join('')}</ul>` : '<p>No se han añadido logros destacados.</p>';
-window.renderProjects = arr => arr?.length ? arr.map(p => `<div style="margin-bottom:1rem;"><strong>${window.escapeHtml(p.name)}</strong><br>${window.escapeHtml(p.description)}<br>Tecnologías: ${window.escapeHtml(p.technologies)}${p.url ? ` <a href="${window.escapeHtml(p.url)}" target="_blank">(Enlace)</a>` : ''}</div>`).join('') : '<p>No se han añadido proyectos personales.</p>';
 
+window.renderWorkExperiences = arr => {
+    const items = arr.filter(w => w.jobTitle || w.company);
+    if (!items.length) return '';
+    return items.map(w => `<div><strong>${window.escapeHtml(w.jobTitle)}</strong> en ${window.escapeHtml(w.company)} (${window.escapeHtml(w.startDate)} - ${window.escapeHtml(w.endDate)})<br><span>${window.escapeHtml(w.description)}</span></div><br>`).join('');
+};
+
+window.renderEducation = arr => {
+    const items = arr.filter(e => e.study);
+    if (!items.length) return '';
+    return items.map(e => `<div><strong>${window.escapeHtml(e.study)}</strong> - ${window.escapeHtml(e.institution)} (${window.escapeHtml(e.periodStart)}/${window.escapeHtml(e.periodEnd)}) - ${window.escapeHtml(e.status)} | Duración: ${window.escapeHtml(e.duration)}<br><span>${window.escapeHtml(e.description)}</span></div><br>`).join('');
+};
+
+window.renderSkills = s => s?.length ? `<ul>${s.map(v => `<li>${window.escapeHtml(v)}</li>`).join('')}</ul>` : '';
+window.renderLanguages = l => l?.length ? `<ul>${l.map(l => `<li><strong>${window.escapeHtml(l.name)}</strong> (${window.escapeHtml(l.level)})</li>`).join('')}</ul>` : '';
+window.renderCertifications = c => c?.length ? `<ul>${c.map(c => `<li><strong>${window.escapeHtml(c.name)}</strong> - ${window.escapeHtml(c.institution)} (${window.escapeHtml(c.date)})${c.url ? ` - <a href="${window.escapeHtml(c.url)}" target="_blank">Ver credencial</a>` : ''}</li>`).join('')}</ul>` : '';
+window.renderReferences = (tpl, refs) => {
+    const items = refs.filter(r => r.name);
+    if (!items.length) return '';
+    return items.map(r => tpl === 'minimal' ? `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | Teléfono: ${window.escapeHtml(r.phone)}</div>` : `<div>${window.escapeHtml(r.name)} - ${window.escapeHtml(r.relation)} | 📞 ${window.escapeHtml(r.phone)}</div>`).join('');
+};
+window.renderAchievements = arr => arr?.length ? `<ul>${arr.map(a => `<li>${window.escapeHtml(a)}</li>`).join('')}</ul>` : '';
+window.renderProjects = arr => arr?.length ? arr.map(p => `<div style="margin-bottom:1rem;"><strong>${window.escapeHtml(p.name)}</strong><br>${window.escapeHtml(p.description)}<br>Tecnologías: ${window.escapeHtml(p.technologies)}${p.url ? ` <a href="${window.escapeHtml(p.url)}" target="_blank">(Enlace)</a>` : ''}</div>`).join('') : '';
 // ==================== 2. VALIDACIONES ====================
 function isValidPhone(p) { return !p || /^\+?[0-9\s\-]{6,15}$/.test(p.replace(/[\s\-]/g, '')); }
 function isValidYearPeriod(v) { return !v.trim() || /^[a-zA-Z0-9\-\sáéíóúüñÑ]+$/.test(v.trim()); }
@@ -70,16 +83,97 @@ let cvData = {
     workExperiences: [], educationList: [], references: [], achievements: [], projects: [], skills: [], languages: [], certifications: []
 };
 
-// ==================== 4. CONFIGURACIÓN DE LISTAS DINÁMICAS ====================
+// ==================== 4. CONFIGURACIÓN DE LISTAS DINÁMICAS (con placeholders en español) ====================
 const listConfigs = {
-    work: { array: ()=>cvData.workExperiences, defaultItem: { jobTitle:'', company:'', startDate:'', endDate:'', description:'' }, minItems:1, emptyMsg:'Debe tener al menos una experiencia', fields: [ {name:'jobTitle',label:'Cargo'},{name:'company',label:'Empresa'},{name:'startDate',label:'Desde'},{name:'endDate',label:'Hasta'},{name:'description',label:'Descripción',type:'textarea'} ], gridCols:'1fr 1fr' },
-    edu: { array: ()=>cvData.educationList, defaultItem: { study:'', institution:'', periodStart:'', periodEnd:'', status:'finalizado', duration:'', description:'' }, minItems:1, emptyMsg:'Debe tener al menos un estudio', fields: [ {name:'study',label:'Estudio'},{name:'institution',label:'Institución'},{name:'periodStart',label:'Desde'},{name:'periodEnd',label:'Hasta'},{name:'status',label:'Estado',type:'select',options:['finalizado','en curso']},{name:'duration',label:'Duración'},{name:'description',label:'Descripción',type:'textarea'} ], gridCols:'1fr 1fr' },
-    ref: { array: ()=>cvData.references, defaultItem: { name:'', phone:'', relation:'' }, minItems:0, fields: [ {name:'name',label:'Nombre'},{name:'phone',label:'Teléfono'},{name:'relation',label:'Relación'} ], gridCols:'1fr 1fr 1fr' },
-    achievements: { array: ()=>cvData.achievements, defaultItem: '', minItems:0, fields: [ {name:'value',label:'Logro'} ], gridCols:'1fr' },
-    projects: { array: ()=>cvData.projects, defaultItem: { name:'', description:'', technologies:'', url:'' }, minItems:0, fields: [ {name:'name',label:'Nombre'},{name:'description',label:'Descripción',type:'textarea'},{name:'technologies',label:'Tecnologías'},{name:'url',label:'Enlace (opcional)'} ], gridCols:'1fr 1fr' },
-    skills: { array: ()=>cvData.skills, defaultItem: '', minItems:0, fields: [ {name:'value',label:'Habilidad'} ], gridCols:'1fr' },
-    languages: { array: ()=>cvData.languages, defaultItem: { name:'', level:'Intermedio (B1)' }, minItems:0, fields: [ {name:'name',label:'Idioma'},{name:'level',label:'Nivel',type:'select',options:['Básico (A1)','Básico (A2)','Intermedio (B1)','Intermedio (B2)','Avanzado (C1)','Avanzado (C2)','Nativo']} ], gridCols:'1fr 1fr' },
-    certifications: { array: ()=>cvData.certifications, defaultItem: { name:'', institution:'', date:'', url:'' }, minItems:0, fields: [ {name:'name',label:'Certificación'},{name:'institution',label:'Institución'},{name:'date',label:'Fecha'},{name:'url',label:'Enlace (opcional)'} ], gridCols:'1fr 1fr' }
+    work: {
+        array: () => cvData.workExperiences,
+        defaultItem: { jobTitle:'', company:'', startDate:'', endDate:'', description:'' },
+        minItems: 1,
+        emptyMsg: 'Debe tener al menos una experiencia',
+        fields: [
+            { name: 'jobTitle', label: 'Cargo', type: 'text', placeholder: 'Ej: Desarrollador Frontend' },
+            { name: 'company', label: 'Empresa', type: 'text', placeholder: 'Ej: Google, Microsoft' },
+            { name: 'startDate', label: 'Desde', type: 'text', placeholder: 'Ej: Ene 2020' },
+            { name: 'endDate', label: 'Hasta', type: 'text', placeholder: 'Ej: Actualidad' },
+            { name: 'description', label: 'Descripción', type: 'textarea', placeholder: 'Describe tus responsabilidades y logros...', fullWidth: true }
+        ],
+        gridCols: '1fr 1fr'
+    },
+    edu: {
+        array: () => cvData.educationList,
+        defaultItem: { study:'', institution:'', periodStart:'', periodEnd:'', status:'finalizado', duration:'', description:'' },
+        minItems: 1,
+        emptyMsg: 'Debe tener al menos un estudio',
+        fields: [
+            { name: 'study', label: 'Estudio', type: 'text', placeholder: 'Ej: Ingeniería Informática' },
+            { name: 'institution', label: 'Institución', type: 'text', placeholder: 'Ej: Universidad de Buenos Aires' },
+            { name: 'periodStart', label: 'Desde', type: 'text', placeholder: 'Ej: 2020' },
+            { name: 'periodEnd', label: 'Hasta', type: 'text', placeholder: 'Ej: 2024' },
+            { name: 'status', label: 'Estado', type: 'select', options: ['finalizado', 'en curso'] },
+            { name: 'duration', label: 'Duración', type: 'text', placeholder: 'Ej: 200 horas / 6 meses' },
+            { name: 'description', label: 'Descripción', type: 'textarea', placeholder: 'Logros, materias...', fullWidth: true }
+        ],
+        gridCols: '1fr 1fr'
+    },
+    ref: {
+        array: () => cvData.references,
+        defaultItem: { name:'', phone:'', relation:'' },
+        minItems: 0,
+        fields: [
+            { name: 'name', label: 'Nombre', type: 'text', placeholder: 'Ej: Juan Pérez' },
+            { name: 'phone', label: 'Teléfono', type: 'tel', placeholder: 'Ej: +123456789' },
+            { name: 'relation', label: 'Relación', type: 'text', placeholder: 'Ej: Ex jefe, compañero' }
+        ],
+        gridCols: '1fr 1fr 1fr'
+    },
+    achievements: {
+        array: () => cvData.achievements,
+        defaultItem: '',
+        minItems: 0,
+        fields: [{ name: 'value', label: 'Logro', type: 'text', placeholder: 'Ej: Aumenté ventas en un 30%' }],
+        gridCols: '1fr'
+    },
+    projects: {
+        array: () => cvData.projects,
+        defaultItem: { name:'', description:'', technologies:'', url:'' },
+        minItems: 0,
+        fields: [
+            { name: 'name', label: 'Nombre del proyecto', type: 'text', placeholder: 'Ej: Mi App' },
+            { name: 'description', label: 'Descripción', type: 'textarea', placeholder: '¿Qué problema resuelve?' },
+            { name: 'technologies', label: 'Tecnologías usadas', type: 'text', placeholder: 'Ej: JavaScript, React, Node.js' },
+            { name: 'url', label: 'Enlace (opcional)', type: 'text', placeholder: 'https://...' }
+        ],
+        gridCols: '1fr 1fr'
+    },
+    skills: {
+        array: () => cvData.skills,
+        defaultItem: '',
+        minItems: 0,
+        fields: [{ name: 'value', label: 'Habilidad', type: 'text', placeholder: 'Ej: Python, SQL, Liderazgo' }],
+        gridCols: '1fr'
+    },
+    languages: {
+        array: () => cvData.languages,
+        defaultItem: { name:'', level:'Intermedio (B1)' },
+        minItems: 0,
+        fields: [
+            { name: 'name', label: 'Idioma', type: 'text', placeholder: 'Ej: Inglés' },
+            { name: 'level', label: 'Nivel', type: 'select', options: ['Básico (A1)','Básico (A2)','Intermedio (B1)','Intermedio (B2)','Avanzado (C1)','Avanzado (C2)','Nativo'] }
+        ],
+        gridCols: '1fr 1fr'
+    },
+    certifications: {
+        array: () => cvData.certifications,
+        defaultItem: { name:'', institution:'', date:'', url:'' },
+        minItems: 0,
+        fields: [
+            { name: 'name', label: 'Certificación', type: 'text', placeholder: 'Ej: AWS Certified' },
+            { name: 'institution', label: 'Institución', type: 'text', placeholder: 'Ej: Amazon' },
+            { name: 'date', label: 'Fecha', type: 'text', placeholder: 'Ej: 2023' },
+            { name: 'url', label: 'Enlace (opcional)', type: 'text', placeholder: 'https://...' }
+        ],
+        gridCols: '1fr 1fr'
+    }
 };
 cvData.workExperiences.push({ ...listConfigs.work.defaultItem });
 cvData.educationList.push({ ...listConfigs.edu.defaultItem });
@@ -146,18 +240,45 @@ function updateIndicator(){ const steps=['📝 Datos Personales','💼 Experienc
 function goToStep(step){ if(step===currentStep) return; if(currentStep===0 && step>0 && !validatePersonalStep()) return; if(currentStep>=1 && currentStep<=8 && step>currentStep && !validateCurrentStepData(currentStep)) return; if(step>=0 && step<totalSteps){ currentStep=step; renderCurrentStep(); } }
 function renderCurrentStep(){ const f = [renderPersonalStep,()=>renderDynamicStep('work','💼 Experiencia','➕ Agregar experiencia',2),()=>renderDynamicStep('edu','🎓 Educación','📘 Agregar estudio',3),()=>renderDynamicStep('ref','📞 Referencias','📇 Agregar referencia',4),()=>renderDynamicStep('achievements','🏆 Logros Destacados','➕ Agregar logro',5),()=>renderDynamicStep('projects','💻 Proyectos Personales','➕ Agregar proyecto',6),()=>renderDynamicStep('skills','🛠️ Habilidades','➕ Agregar habilidad',7),()=>renderDynamicStep('languages','🌐 Idiomas','➕ Agregar idioma',8),()=>renderDynamicStep('certifications','📜 Certificaciones','➕ Agregar certificación',9),renderPreviewAndTemplateStep]; f[currentStep](); updateIndicator(); window.refreshCompletion(); }
 
-// ==================== 8. PASO 0: DATOS PERSONALES ====================
+// ==================== 8. PASO 0: DATOS PERSONALES (con placeholders en español) ====================
 function renderPersonalStep(){
     const p = cvData.personal;
-    const fields = ['fullName','jobTitle','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].map(f=>`<div class="form-group"><label>${f==='fullName'?'Nombre completo *':f==='jobTitle'?'Puesto deseado (opcional)':f==='birthDate'?'Fecha nacimiento':f==='mobilePhone'?'Teléfono celular *':f==='homePhone'?'Teléfono casa':f==='email'?'Correo electrónico *':f}</label><input type="${f==='birthDate'?'date':f==='email'?'email':'text'}" id="${f}" value="${window.escapeHtml(p[f]||'')}"></div>`).join('');
-    stepContent.innerHTML = `<div style="display:flex;justify-content:space-between;gap:0.8rem;margin-bottom:1.5rem;flex-wrap:wrap;"><button id="resetDataBtn" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button><div style="display:flex;gap:0.5rem;"><button id="exportDataBtn">💾 Exportar</button><label for="importFileInput" style="background:#10b981;color:white;padding:0.6rem 1.2rem;border-radius:40px;cursor:pointer;">📂 Cargar</label><input type="file" id="importFileInput" accept=".json" style="display:none;"></div></div><div class="form-grid">${fields}<div class="form-group" style="grid-column:1/-1;"><label>Resumen profesional / Perfil</label><textarea id="profileSummary" rows="3" placeholder="Breve descripción de tu perfil profesional...">${window.escapeHtml(p.profileSummary||'')}</textarea></div><div class="form-group"><label>📸 Foto</label><input type="file" id="photoUpload" accept="image/jpeg,image/png"><img id="photoPreview" class="photo-preview" src="${p.photoDataURL||`https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(p.fullName||'CV')}`}"></div></div><div class="nav-buttons"><button class="secondary" disabled>◀ Anterior</button><button id="nextStepBtn">Continuar ➤</button></div>`;
-    ['fullName','jobTitle','birthDate','address','mobilePhone','homePhone','email','facebook','instagram','github'].forEach(id=>{ document.getElementById(id)?.addEventListener('input',e=>{ cvData.personal[id]=e.target.value; if(!cvData.personal.photoDataURL){ document.getElementById('photoPreview').src=`https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(cvData.personal.fullName||'CV')}`; } window.refreshCompletion(); }); });
-    document.getElementById('profileSummary')?.addEventListener('input',e=>{ cvData.personal.profileSummary=e.target.value; window.refreshCompletion(); });
-    document.getElementById('photoUpload')?.addEventListener('change',e=>{ if(e.target.files[0]){ const r=new FileReader(); r.onload=ev=>{ cvData.personal.photoDataURL=ev.target.result; document.getElementById('photoPreview').src=ev.target.result; window.refreshCompletion(); }; r.readAsDataURL(e.target.files[0]); } });
-    document.getElementById('resetDataBtn')?.addEventListener('click',resetAllData);
-    document.getElementById('exportDataBtn')?.addEventListener('click',exportData);
-    document.getElementById('importFileInput')?.addEventListener('change',importData);
-    document.getElementById('nextStepBtn')?.addEventListener('click',()=>{ if(validatePersonalStep()) goToStep(1); });
+    const fields = [
+        { id: 'fullName', label: 'Nombre completo *', type: 'text', placeholder: 'Ej: Ana García López' },
+        { id: 'jobTitle', label: 'Puesto deseado (opcional)', type: 'text', placeholder: 'Ej: Desarrollador de Software' },
+        { id: 'birthDate', label: 'Fecha nacimiento', type: 'date', placeholder: '' },
+        { id: 'address', label: 'Dirección', type: 'text', placeholder: 'Ej: Calle Falsa 123, Ciudad, País' },
+        { id: 'mobilePhone', label: 'Teléfono celular *', type: 'tel', placeholder: 'Ej: +123456789' },
+        { id: 'homePhone', label: 'Teléfono casa', type: 'tel', placeholder: 'Ej: +123456789' },
+        { id: 'email', label: 'Correo electrónico *', type: 'email', placeholder: 'Ej: usuario@ejemplo.com' },
+        { id: 'facebook', label: 'Facebook', type: 'text', placeholder: 'https://facebook.com/tuusuario' },
+        { id: 'instagram', label: 'Instagram', type: 'text', placeholder: '@tuusuario' },
+        { id: 'github', label: 'GitHub', type: 'text', placeholder: 'https://github.com/tuusuario' }
+    ];
+    const fieldsHtml = fields.map(f => `
+        <div class="form-group">
+            <label>${f.label}</label>
+            <input type="${f.type}" id="${f.id}" value="${window.escapeHtml(p[f.id] || '')}" placeholder="${f.placeholder}">
+        </div>
+    `).join('');
+
+    stepContent.innerHTML = `<div style="display:flex;justify-content:space-between;gap:0.8rem;margin-bottom:1.5rem;flex-wrap:wrap;"><button id="resetDataBtn" class="danger" style="background:#dc2626;">🗑️ Borrar todo</button><div style="display:flex;gap:0.5rem;"><button id="exportDataBtn">💾 Exportar</button><label for="importFileInput" style="background:#10b981;color:white;padding:0.6rem 1.2rem;border-radius:40px;cursor:pointer;">📂 Cargar</label><input type="file" id="importFileInput" accept=".json" style="display:none;"></div></div><div class="form-grid">${fieldsHtml}<div class="form-group" style="grid-column:1/-1;"><label>Resumen profesional / Perfil</label><textarea id="profileSummary" rows="3" placeholder="Breve descripción de tu perfil profesional...">${window.escapeHtml(p.profileSummary||'')}</textarea></div><div class="form-group"><label>📸 Foto</label><input type="file" id="photoUpload" accept="image/jpeg,image/png"><img id="photoPreview" class="photo-preview" src="${p.photoDataURL||`https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(p.fullName||'CV')}`}"></div></div><div class="nav-buttons"><button class="secondary" disabled>◀ Anterior</button><button id="nextStepBtn">Continuar ➤</button></div>`;
+
+    fields.forEach(f => {
+        document.getElementById(f.id)?.addEventListener('input', e => {
+            cvData.personal[f.id] = e.target.value;
+            if (!cvData.personal.photoDataURL && f.id === 'fullName') {
+                document.getElementById('photoPreview').src = `https://ui-avatars.com/api/?background=3b82f6&color=fff&name=${encodeURIComponent(cvData.personal.fullName||'CV')}`;
+            }
+            window.refreshCompletion();
+        });
+    });
+    document.getElementById('profileSummary')?.addEventListener('input', e => { cvData.personal.profileSummary = e.target.value; window.refreshCompletion(); });
+    document.getElementById('photoUpload')?.addEventListener('change', e => { if(e.target.files[0]){ const r=new FileReader(); r.onload=ev=>{ cvData.personal.photoDataURL=ev.target.result; document.getElementById('photoPreview').src=ev.target.result; window.refreshCompletion(); }; r.readAsDataURL(e.target.files[0]); } });
+    document.getElementById('resetDataBtn')?.addEventListener('click', resetAllData);
+    document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
+    document.getElementById('importFileInput')?.addEventListener('change', importData);
+    document.getElementById('nextStepBtn')?.addEventListener('click', () => { if(validatePersonalStep()) goToStep(1); });
 }
 
 // ==================== 9. RENDERIZADO DE LISTAS DINÁMICAS ====================
@@ -178,7 +299,8 @@ function renderDynamicItems(container, key){
         const card = document.createElement('div'); card.className = 'card-item';
         let fieldsHtml = `<div class="form-grid" style="grid-template-columns:${cfg.gridCols};">`;
         if(key==='skills' || key==='achievements'){
-            fieldsHtml += `<div style="grid-column:1/-1;"><label>${key==='skills'?'Habilidad':'Logro'}</label><input type="text" data-field="value" data-idx="${idx}" value="${window.escapeHtml(item)}" placeholder="Ej: ${key==='skills'?'Python, Liderazgo':'Reduje tiempos de consulta en 30%'}"></div>`;
+            const placeholder = key==='skills' ? 'Ej: Python, SQL, Liderazgo' : 'Ej: Aumenté ventas en un 30%';
+            fieldsHtml += `<div style="grid-column:1/-1;"><label>${cfg.fields[0].label}</label><input type="text" data-field="value" data-idx="${idx}" value="${window.escapeHtml(item)}" placeholder="${placeholder}"></div>`;
         } else {
             for(const f of cfg.fields){
                 const val = item[f.name]??'';
@@ -247,7 +369,7 @@ async function renderPreviewAndTemplateStep(){
     document.getElementById('importFile2')?.addEventListener('change',importData);
     document.querySelectorAll('.template-option').forEach(opt=>opt.addEventListener('click',async e=>{ selectedTemplate=e.currentTarget.dataset.template; await loadTemplate(selectedTemplate); renderPreviewAndTemplateStep(); }));
     await updatePreview();
-    document.getElementById('prevStepBtn')?.addEventListener('click',()=>goToStep(8)); // Corregido: ahora va a certificaciones (paso 8)
+    document.getElementById('prevStepBtn')?.addEventListener('click',()=>goToStep(8));
     document.getElementById('printBtn')?.addEventListener('click',printCV);
 }
 async function updatePreview(){ const preview=document.getElementById('livePreview'); if(preview){ try{ const render=await loadTemplate(selectedTemplate); preview.innerHTML=render(cvData); } catch{ preview.innerHTML='<p style="color:red;">Error cargando plantilla.</p>'; } } }
